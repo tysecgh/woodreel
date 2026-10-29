@@ -1,3 +1,6 @@
+// Copyright (c) 2026 tysecgh
+// CC BY 4.0 https://creativecommons.org/licenses/by/4.0/
+
 /////////////////////////////////
 //// ヘルパー
 /////////////////////////////////
@@ -5,9 +8,9 @@
 _margin_ = 1;
 _inflate_ = 3;
 
-hole_sw = 1;
-chamf_sw = 1;
-holeAt_sw = 0;
+$holeflg = true;
+$chamfflg = true;
+
 
 $echoflg = false;
 $nameflg = false;   // 1: 各部品の外側に名前ラベルを出す
@@ -29,7 +32,7 @@ module board(p, h){
 
 module chamf(chmfw,h){
 	if( chmfw> 0){
-		if( chamf_sw == 1 ){
+		if( $chamfflg ){
 			csize = min(5,chmfw/3);
 			csp = min(csize*2.7,chmfw-1);
 			translate([0,0,-_margin_])
@@ -92,7 +95,7 @@ module hole(r,h){
 		cylinder(h=h+_margin_*2,r=r,$fn=24);
 
 
-		if( hole_sw == 1 ){
+		if( $holeflg ){
 			if( r > 10 ){
 				translate([1,1,0-_margin_])
 				linear_extrude(height=h+_margin_*4){
@@ -175,11 +178,11 @@ OCg_K_h = 6; // 歯高
 
 OCc_K_r = 12; // カム基準半径
 OCc_K_w = 12; // カムオシレーション距離
-OCs_V_r = 3; // オシレーションギアシャフト半径
+OCgs_V_r = 3; // オシレーションギアシャフト半径
 
 // OF
-OF_N_xl = OCs_V_r+6;
-OF_N_xr = OCs_V_r+OCc_K_w+12;
+OF_N_xl = OCgs_V_r+6;
+OF_N_xr = OCgs_V_r+OCc_K_w+12;
 OF_N_yl = 9;
 OF_N_yr = 9;
 
@@ -194,14 +197,14 @@ RB_N_w = 12;    // ピンラックホイール幅
 RB_N_or = RB_K_r+3;    // ピンラックホイール外半径
 
 // H（ハンドル）
-Hs_V_r = 3; // ハンドルシャフト半径
-Hs_V_wr = RB_N_or; // メインシャフト中心面からGM内側面まで
-Hs_V_wl = boardAw * 3.5; // メインシャフト中心面からGS内側面まで
-Hs_N_wrx = 24; // 右余裕 （（本当の）ハンドル付ける）
-Hs_N_wlx = 12; // 左余裕
-Hs_N_w = Hs_V_wr+Hs_V_wl
+HS_V_r = 3; // ハンドルシャフト半径
+HS_V_wr = RB_N_or; // メインシャフト中心面からGM内側面まで
+HS_V_wl = boardAw * 3.5; // メインシャフト中心面からGS内側面まで
+HS_N_wrx = 18; // 右余裕 （（本当の）ハンドル付ける）
+HS_N_wlx = 12; // 左余裕
+HS_N_w = HS_V_wr+HS_V_wl
 	+ boardAw*2 // 両側ギア厚
-	+ Hs_N_wrx+Hs_N_wlx;
+	+ HS_N_wrx+HS_N_wlx;
 
 // MS（メインシャフト）
 MS_K_r = 18;  // メインシャフト大構造としての半径
@@ -244,7 +247,8 @@ R_V_abm = RB_P_yr - R_V_as ; // アームブリッジとアーム軸間に必要
 // RA 軸中心を原点
 RA_N_lr = 4; // ラインローラー半径
 
-RAb_N_w = R_V_bw+boardBw*5; // アームブリッジ長さ
+RAbo_N_w = R_V_bw+boardBw*5; // アームブリッジ長さ
+RAbi_N_w = R_V_bw;
 RAb_N_h = 12; // アームブリッジ幅
 
 // 軸中心から糸ローラー軸中心までの長さ
@@ -429,7 +433,7 @@ module PART_GM(){
 	h = boardAw;
 	difference(){
 		pin_disc_crown_disc(GM_N_or,h,GM_K_r,GM_K_num);
-		hole(Hs_V_r,h);
+		hole(HS_V_r,h);
 	}
 
 	namep = [-GM_N_or, GM_N_or-5, 0];
@@ -442,7 +446,7 @@ GM_X_ALL = [
 	str("外径:",GM_N_or*2," 板厚:",boardAw),
 	str("基準半径:",GM_K_r),
     str(" 歯数:",GM_K_num," ピン r:",pin_rad),
-	str("軸穴 r:",Hs_V_r)
+	str("軸穴 r:",HS_V_r)
 ];
 
 module UNIT_GM(){
@@ -464,7 +468,7 @@ module PART_GS(){
 	difference(){
 		pin_disc_crown_disc(GS_N_or,h,GS_K_r,GS_K_num);
 
-		hole(Hs_V_r,h);
+		hole(HS_V_r,h);
 	}
 
 	namep = [-GS_N_or, GS_N_or, 0];
@@ -474,7 +478,7 @@ GS_X_ALL = [
 	GS_X_name,
 	str("外径:",GS_N_or*2," 板厚:",boardAw),
 	str("基準半径:",GS_K_r," 歯数:",GS_K_num," ピン r:",pin_rad),
-	str("軸穴 r:",Hs_V_r)
+	str("軸穴 r:",HS_V_r)
 ];
 
 module UNIT_GS(){
@@ -495,7 +499,7 @@ module PART_OC_g(){
 	h = boardAw;
 	difference(){
 		pin_disc(OCg_K_r-OCg_K_h/2,h,OCg_K_h,OCg_K_num);
-		hole(OCs_V_r,h);
+		hole(OCgs_V_r,h);
 	}
 
 	namep = [-(OCg_K_r+OCg_K_h/2), OCg_K_r+OCg_K_h/2, 0];	name_view(OCg_X_name,namep);
@@ -506,7 +510,7 @@ OCg_X_ALL = [
 	str("円盤 r:",OCg_K_r-OCg_K_h/2," 板厚:",boardAw),
 	str("基準半径:",OCg_K_r," 歯数:",OCg_K_num),
     str(" 歯高:",OCg_K_h," ピン r:",pin_rad),
-	str("軸穴 r:",OCs_V_r)
+	str("軸穴 r:",OCgs_V_r)
 ];
 
 OCc_X_name = "PART_OC_c";
@@ -517,7 +521,7 @@ module PART_OC_c(){
 	difference(){
 		heart_cam(OCc_K_r-OCc_K_w/2,OCc_K_r+OCc_K_w/2,h);
 
-		hole(OCs_V_r,h);
+		hole(OCgs_V_r,h);
 	}
 
 	namep = [-(OCc_K_r+OCc_K_w/2), OCc_K_r+OCc_K_w/2, 0];
@@ -527,7 +531,7 @@ OCc_X_ALL =[
 	OCc_X_name,
 	str("カム半径:",OCc_K_r-OCc_K_w/2,"〜",OCc_K_r+OCc_K_w/2," 板厚:",boardAw),
 	str("ストローク:",OCc_K_w),
-	str("軸穴 r:",OCs_V_r),
+	str("軸穴 r:",OCgs_V_r),
     str("外形位置に無数のd3穴")
 ];
 
@@ -551,9 +555,9 @@ module PART_OF(){
 		board([OF_N_xr,OF_N_yr]-[-OF_N_xl,-OF_N_yl],h);
 
 		// カム軸スペース
-		hole(OCs_V_r,h);
-		translate([OCc_K_w,0,0]) hole(OCs_V_r,h);
-		cut([0,-OCs_V_r],[OCc_K_w,OCs_V_r],h);
+		hole(OCgs_V_r,h);
+		translate([OCc_K_w,0,0]) hole(OCgs_V_r,h);
+		cut([0,-OCgs_V_r],[OCc_K_w,OCgs_V_r],h);
 
 		// オシレション伝達シャフト連結ピン用穴
 		translate([OCc_K_r+OCc_K_w/2+5,0,0]) hole(pin_rad,h);
@@ -572,7 +576,7 @@ OF_X_ALL = [
 	str("外接長方形:",OF_N_xl+OF_N_xr,"X",OF_N_yl+OF_N_yr),
 	str("カム軸スペース ",
         " x:", join([OF_N_xl,OCc_K_w,OF_N_xr-OCc_K_w]),
-        " y:", join([OF_N_yl-OCs_V_r,OCs_V_r*2,OF_N_yr-OCs_V_r])
+        " y:", join([OF_N_yl-OCgs_V_r,OCgs_V_r*2,OF_N_yr-OCgs_V_r])
     ),
 	str("連結ピン穴 x:",
         OF_N_xl+OCc_K_r+OCc_K_w/2+5,"+",OF_N_xr-(OCc_K_r+OCc_K_w/2+5),
@@ -594,24 +598,43 @@ module UNIT_OF(){
 	translate([-(OCc_K_r-OCc_K_w/2),0,-boardAw]) pin(boardAw*2);
 }
 
-OCs_V_l = B_K_hodx - OCs_V_r + B_P_xr // 最も埋まった時のボディ内部の長さ
-    + RB_V_th + boardAw + (S_V_w+boardAw*2);
+OCs_N_r = 3; // 伝達シャフト半径
+OCs_V_l = B_K_hodx - OCgs_V_r + B_P_xr // 最も埋まった時のボディ内部の長さ
+    + RB_V_th + boardAw + (S_V_w+boardAw*2)+2;
 
 // オシレション伝達シャフト
+OCs_X_name = "PART_OC_s";
 module PART_OC_s(){
-    cylinder(r=3,h=OCs_V_l,$fn=12);
+    cylinder(r=OCs_N_r,h=OCs_V_l,$fn=12);
+
+	namep = [0,OCs_N_r];
+    rotate([0,-90,0])
+	name_view(OCs_X_name,namep);
 }
+OCs_X_ALL = [
+    OCs_X_name,
+    str("円柱 r:",OCs_N_r," h:",OCs_V_l)
+];
+
+
 
 module ASSY_OF(){
 	UNIT_OF();
 
 	// オシレション伝達シャフト
-	translate([OCc_K_w+OCs_V_r,0,3+boardAw])
+	translate([OCc_K_w+OCgs_V_r,0,3+boardAw])
 	rotate([0,90,0])
 	PART_OC_s();
+
+translate([
+    OCc_K_w+OCgs_V_r+
+    B_K_hodx - OCgs_V_r + B_P_xr + RB_V_th + boardAw+2,
+    9,boardAw*1.5
+])
+rotate([0,90,0])
+UNIT_S();
+
 }
-
-
 //////////////////////
 // RB
 
@@ -974,48 +997,74 @@ RAo_X_ALL = [
 
 
 
-RAb_X_name = "PART_RA_b";
-module PART_RA_b(){
+RAbo_X_name = "PART_RA_bo";
+module PART_RA_bo(){
 	h=boardBw;
 	difference(){
-		board([RAb_N_w,RAb_N_h],h);
+		board([RAbo_N_w,RAb_N_h],h);
 
 	}
 
 	namep = [0, RAb_N_h, 0];
-	name_view(RAb_X_name,namep);
+	name_view(RAbo_X_name,namep);
 }
-RAb_X_ALL = [
-	RAb_X_name,
-	str("外接長方形:",RAb_N_w,"X",RAb_N_h)
+RAbo_X_ALL = [
+	RAbo_X_name,
+	str("外接長方形:",RAbo_N_w,"X",RAb_N_h)
 ];
 
+RAbi_X_name = "PART_RA_bi";
+module PART_RA_bi(){
+	h=boardBw;
+	difference(){
+		board([RAbi_N_w,RAb_N_h],h);
+
+	}
+
+	namep = [0, RAb_N_h, 0];
+	name_view(RAbi_X_name,namep);
+}
+RAbi_X_ALL = [
+	RAbi_X_name,
+	str("外接長方形:",RAbi_N_w,"X",RAb_N_h)
+];
+
+RAr_N_d = RAbo_N_w;
+RAr_N_fl = R_V_as+0.5+RA_P_xl + 9;
+
+RAr_X_name = "PART_RA_r";
 module PART_RA_r(){
     fl = R_V_as+0.5+RA_P_xl;
-    x = 13;
+    x = 9;
     
     translate([0,fl+x,-3])
     linear_extrude(6){
-    intersection(){
-        difference(){
-            circle(RAb_N_w/2+1);
-            circle(RAb_N_w/2);
+        intersection(){
+            difference(){
+                circle(RAr_N_d/2+1);
+                circle(RAr_N_d/2);
+            }
+            translate([-RAr_N_d/2-1,0,0])
+            square([RAr_N_d+2,RAr_N_d/2]);
         }
-        translate([-RAb_N_w/2-1,0,0])
-        square([RAb_N_w+2,RAb_N_w/2]);
-    }
-
-    difference(){
-    translate([-RAb_N_w/2-1,-fl-x,0])
-    square([RAb_N_w+2,fl+x]);
+        difference(){
+            translate([-RAr_N_d/2-1,-RAr_N_fl,0])
+            square([RAr_N_d+2,RAr_N_fl]);
         
-    translate([-RAb_N_w/2,-fl-x,-_margin_])
-    square([RAb_N_w,fl+2*_margin_]);
+            translate([-RAr_N_d/2,-RAr_N_fl,-_margin_])
+            square([RAr_N_d,RAr_N_fl+2*_margin_]);
+        }
     }
-}
 
-
+    namep = [-RAr_N_d/3,RAr_N_fl/3,0];
+	name_view(RAr_X_name,namep);
 }
+RAr_X_ALL = [
+	RAr_X_name,
+	str("円弧径 d:",RAr_N_d),
+	str("足長:",RAr_N_fl),
+	str("全長概値:",RAr_N_d*1.6+RAr_N_fl*2)
+];
 
 
  
@@ -1074,10 +1123,12 @@ module ASSY_RA(){
 	}
 
 	translate([R_V_abm+1.5,RA_N_rw,-(R_V_bw+boardBw*2)])
-	rotate([0,-90,-90])
-	PART_RA_b();
-
-translate([RAsub_P_yr-3,RA_P_xl,-RAb_N_w/2+boardBw*3])
+	rotate([0,-90,-90]){
+        PART_RA_bo();
+        translate([boardBw*2,0,-boardBw])
+        PART_RA_bi();
+    }
+translate([RAsub_P_yr-3,RA_P_xl,-RAbo_N_w/2+boardBw*3])
 rotate([0,90,180])
 PART_RA_r();
 
@@ -1152,50 +1203,56 @@ MSt1_X_ALL = [MSt1_X_name,
 
 MS_X_s0 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_dh+RB_V_th+MS_N_th);
 
-MSs0_X_name = "PART_MS_S0";
-module PART_MS_S0(){
+MSs0_X_name = "PART_MS_s0";
+module PART_MS_s0(){
 	cylinder(r=3,h=MS_N_dh+RB_V_th+MS_N_th,$fn=24);
 
-	namep = [-MS_K_vr, MS_K_vr, 0];
+	namep = [0, MS_K_vr, 0];
+    rotate([0,-90,0])
 	name_view(MSs0_X_name,namep);
+
 }
 MSs0_X_ALL = [MSs0_X_name,MS_X_s0];
 
 
 MS_X_s2 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_dh+RB_V_th);
 
-MSs2_X_name = "PART_MS_S2";
-module PART_MS_S2(){
+MSs2_X_name = "PART_MS_s2";
+module PART_MS_s2(){
 	cylinder(r=3,h=MS_N_dh+RB_V_th,$fn=24);
 
-	namep = [-MS_K_vr, MS_K_vr, 0];
+	namep = [0, MS_K_vr, 0];
+    rotate([0,-90,0])
 	name_view(MSs2_X_name,namep);
 }
 MSs2_X_ALL = [MSs2_X_name,MS_X_s2];
 
-MSs4_X_name = "PART_MS_S4";
-module PART_MS_S4(){
+MSs4_X_name = "PART_MS_s4";
+module PART_MS_s4(){
 	cylinder(r=3,h=MS_N_dh+RB_V_th+MS_N_th,$fn=24);
 
-	namep = [-MS_K_vr, MS_K_vr, 0];
+	namep = [0, MS_K_vr, 0];
+    rotate([0,-90,0])
 	name_view(MSs4_X_name,namep);
 }
 MSs4_X_ALL = [MSs4_X_name,MS_X_s0];
 
-MSs8_X_name = "PART_MS_S8";
-module PART_MS_S8(){
+MSs8_X_name = "PART_MS_s8";
+module PART_MS_s8(){
 	cylinder(r=3,h=MS_N_dh+RB_V_th+MS_N_th,$fn=24);
 
-	namep = [-MS_K_vr, MS_K_vr, 0];
+	namep = [0, MS_K_vr, 0];
+    rotate([0,-90,0])
 	name_view(MSs8_X_name,namep);
 }
 MSs8_X_ALL = [MSs8_X_name,MS_X_s0];
 
-MSs10_X_name = "PART_MS_S10";
-module PART_MS_S10(){
+MSs10_X_name = "PART_MS_s10";
+module PART_MS_s10(){
 	cylinder(r=3,h=MS_N_dh+RB_V_th,$fn=24);
 
-	namep = [-MS_K_vr, MS_K_vr, 0];
+	namep = [0, MS_K_vr, 0];
+    rotate([0,-90,0])
 	name_view(MSs10_X_name,namep);
 }
 MSs10_X_ALL = [MSs10_X_name,MS_X_s2];
@@ -1208,11 +1265,11 @@ module ASSY_MS(){
 	translate([0,0,h1]) PART_MS_t0();
 
 	translate([0,0,-MS_N_dh]){
-		translate(MS_K_time0) PART_MS_S0();
-		translate(MS_K_time2) PART_MS_S2();
-		translate(MS_K_time4) PART_MS_S4();
-		translate(MS_K_time8) PART_MS_S8();
-		translate(MS_K_time10) PART_MS_S10();
+		translate(MS_K_time0) PART_MS_s0();
+		translate(MS_K_time2) PART_MS_s2();
+		translate(MS_K_time4) PART_MS_s4();
+		translate(MS_K_time8) PART_MS_s8();
+		translate(MS_K_time10) PART_MS_s10();
 	}
 }
 
@@ -1281,7 +1338,7 @@ St_X_ALL = [
     each S_X_holes
 ];
 
-module ASSY_S(){
+module UNIT_S(){
 	PART_S_b();
 	translate([0,0,boardAw]) PART_S_m();
 	translate([0,0,boardAw+S_V_w]) PART_S_t();
@@ -1356,9 +1413,9 @@ module PART_B_boardC(h){
 
 module PART_B_holes(h){
 	// ハンドル軸穴
-	hole(Hs_V_r,h);
+	hole(HS_V_r,h);
 	// オシレーションクランク軸穴
-	translate(B_P_ocp) hole(OCs_V_r,h);
+	translate(B_P_ocp) hole(OCgs_V_r,h);
 	// メインシャフト固定ピン用穴
 	translate(B_P_pinp) hole(3,h);
 
@@ -1368,7 +1425,7 @@ B_X_outrct = str("外接長方形:",B_N_xw,"X",B_N_yw);
 
 
 Bc_X_hhp = str(
-	"ハンドル軸穴 r:",Hs_V_r,
+	"ハンドル軸穴 r:",HS_V_r,
 	xytxt(B_P_xl,B_P_yl)
 );
 
@@ -1376,7 +1433,7 @@ B_X_ochpxy = xytxt(
 	B_P_xl+B_P_ocp[0],B_P_yl+B_P_ocp[1]
 );
 B_X_ochp = str(
-	"オシレーションクランク軸穴 r:",OCs_V_r,B_X_ochpxy
+	"オシレーションクランク軸穴 r:",OCgs_V_r,B_X_ochpxy
 );
 
 B_X_msphp = str(
@@ -1640,11 +1697,11 @@ Br1_X_ALL = [
 
 B_X_outrct2 = str("外接長方形:",Br_N_xw,"X",Br_N_yw);
 Bc_X_hhp2 = str(
-	"ハンドル軸穴 r:",Hs_V_r,
+	"ハンドル軸穴 r:",HS_V_r,
 	xytxt(Br_P_xl,B_P_yl)
 );
 B_X_ochp2 = str(
-	"オシレーションクランク軸穴 r:",OCs_V_r,xytxt(Br_P_xl+B_P_ocp[0],B_P_yl+B_P_ocp[1])
+	"オシレーションクランク軸穴 r:",OCgs_V_r,xytxt(Br_P_xl+B_P_ocp[0],B_P_yl+B_P_ocp[1])
 );
 B_X_msphp2 = str(
 	"メインシャフト固定ピン穴 r:",3,
@@ -1743,30 +1800,53 @@ module ASSY_B(){
 
 //////////////////////
 // H
+HS_X_name = "PART_HS";
+module PART_HS(){
+    cylinder(r=HS_V_r,h=HS_N_w,$fn=24);
+
+	namep = [0, HS_V_r, 0];
+    rotate([0,-90,0])
+	name_view(HS_X_name,namep);
+}
+HS_X_ALL = [
+    HS_X_name,
+    str(" r:",HS_V_r," h:",HS_N_w)
+];
+
 
 module ASSY_H(){
 	UNIT_GM();
-	translate([0,0,Hs_V_wr+Hs_V_wl+boardAw*2])rotate([180,0,0]) UNIT_GS();
+	translate([0,0,HS_V_wr+HS_V_wl+boardAw*2])rotate([180,0,0]) UNIT_GS();
 
 	// ハンドルシャフト
-	translate([0,0,-Hs_N_wrx])
-	cylinder(r=Hs_V_r,h=Hs_N_w,$fn=24);
+	translate([0,0,-HS_N_wrx])
+	PART_HS();
     
     rotate([-90,0,0]) UNIT_HK();
 }
 
 
+HKb_V_dx = 10;
+HKb_V_dy = 10;
+HKb_V_dw = 6;
+HKb_V_ax = 35;
+HKb_V_ay = 30;
 
-module UNIT_HK(){
-    dx = 10;
-    dy = 10;
-    dw = 6;
-    ax = 35;
-    ay = 30;
+HKb_P_xl = 10;
+HKb_P_xr = 3.5*HKb_V_dx+HKb_V_ax;
+HKb_P_yr = HKb_V_ay+HKb_V_dy;
+
+HKb_X_name = "PART_HK_b";
+module PART_HK_b(){
+    dx = HKb_V_dx;
+    dy = HKb_V_dy;
+    dw = HKb_V_dw;
+    ax = HKb_V_ax;
+    ay = HKb_V_ay;
     
     difference(){
-        translate([0,0,-dw])
-        linear_extrude(dw*2)
+        translate([0,0,-HKb_V_dw])
+        linear_extrude(HKb_V_dw*2)
         polygon([
             [-dx,0],[dx,0],[dx+ax,ay],
             [3*dx+ax-dx/2,ay],[3*dx+ax-dx/2,ay+dy],
@@ -1777,33 +1857,105 @@ module UNIT_HK(){
         translate([2*dx+ax-dx/2,ay])
         rotate([-90,0,0]) hole(3,dy);
     }
-    
-    kh = 12;
-    kr = 18;
-    nh = 6;
-    nr = 10;
-    
-    translate([2*dx+ax-dx/2,ay])
-    rotate([-90,0,0]) cylinder(r=3,h=kh+nh+dy);
+	namep = [-dx,ay];
+	name_view(HKb_X_name,namep);
+}
+HKb_X_ALL = [
+    HKb_X_name,
+    str("外形 :", 
+        HKb_V_dx*2.5+HKb_V_ax, " X ",
+        HKb_V_dy + HKb_V_ay, " X ", HKb_V_dw*2
+    ),
+    str(
+        "x:",join([HKb_V_dx*2,HKb_V_ax-HKb_V_dx,HKb_V_dx*2]),
+        " y:",join([HKb_V_ay,HKb_V_dy])
+    ),
+    str(
+        "x:",join([HKb_V_dx*1.5,HKb_V_ax,HKb_V_dx]),
+        " y:",join([HKb_V_dy,HKb_V_ay])
+    )
+];
 
-    translate([2*dx+ax-dx/2,ay+dy+nh])
-    rotate([-90,0,0]) cylinder(r=kr,h=kh);
+HKs_N_r =3;
 
-    translate([2*dx+ax-dx/2,ay+dy])
-    rotate([-90,0,0]) cylinder(r=nr,h=nh);
+HKk_N_h =12;
+HKk_N_r =18;
+
+HKk_X_name = "PART_HK_k";
+module PART_HK_k(){
+    difference(){
+        cylinder(r=HKk_N_r,h=HKk_N_h);
+        hole(HKs_N_r,HKk_N_h);
+    }
+	namep = [-HKk_N_r,HKk_N_r];
+	name_view(HKk_X_name,namep);
+}
+HKk_X_ALL = [
+    HKk_X_name,
+    str("外径 r:",HKk_N_r," h:",HKk_N_h),
+    str("軸穴 r:",HKs_N_r)
+];
+
+HKn_N_h =6;
+HKn_N_r =10;
+
+HKn_X_name = "PART_HK_n";
+module PART_HK_n(){
+    difference(){
+        cylinder(r=HKn_N_r,h=HKn_N_h);
+        hole(HKs_N_r,HKn_N_h);
+    }
+	namep = [-HKn_N_r,HKn_N_r];
+	name_view(HKn_X_name,namep);
+}
+HKn_X_ALL = [
+    HKn_X_name,
+    str("外径 r:",HKn_N_r," h:",HKn_N_h),
+    str("軸穴 r:",HKs_N_r)
+];
+
+
+
+HKs_N_h = HKn_N_h+HKk_N_h+HKb_V_dy*1.5;
+
+HKs_X_name = "PART_HK_s";
+module PART_HK_s(){
+    cylinder(r=HKs_N_r,h=HKs_N_h);
+	namep = [0,HKs_N_r];
+    rotate([0,-90,0])
+	name_view(HKs_X_name,namep);
+}
+HKs_X_ALL = [
+    HKs_X_name,
+    str("円柱 r:",HKs_N_r," h:",HKs_N_h),
+];
+
+module UNIT_HK(){
+    PART_HK_b();
+    
+    
+    translate([2*HKb_V_dx+HKb_V_ax-HKb_V_dx/2,HKb_V_ay-HKb_V_dy/2])
+    rotate([-90,0,0]) PART_HK_s();
+
+    translate([2*HKb_V_dx+HKb_V_ax-HKb_V_dx/2,HKb_V_ay+HKb_V_dy+HKn_N_h])
+    rotate([-90,0,0]) PART_HK_k();
+
+    translate([2*HKb_V_dx+HKb_V_ax-HKb_V_dx/2,HKb_V_ay+HKb_V_dy])
+    rotate([-90,0,0]) PART_HK_n();
 }
 
 
-
+//ASSY_H();
 /////////////////////////////////
 //// 表示
 /////////////////////////////////
 
-module VIEW_R(){
+module VIEW_ASSY_R(thetaA=0,thetaS=0){
 	ASSY_RB();
 
 	translate([-R_V_axm-0.5,R_V_as,RB_V_th-boardBw/2-boardBw])
 	rotate([0,-90,0])
+	rotate([0,0,thetaA])
 	ASSY_RA();
 
 	h1 = boardBw+RB_N_w;
@@ -1811,66 +1963,117 @@ module VIEW_R(){
 
 	// ストッパー
 	h2 = h1+boardAw;
-	translate([-RB_N_sx,-RB_N_sy,h2]) rotate([0,0,20])
+	translate([-RB_N_sx,-RB_N_sy,h2]) rotate([0,0,thetaS])
 	PART_RS();
-
-	//    translate([R_V_ax+boardBw+0.5,R_V_as,RB_V_th-boardBw/2])
-	//	rotate([0,-90,0])
-	//        ASSY_RAsub();
 }
 
-module VIEW_MSRS(){
-	translate([0,0,0.5]) VIEW_R();
-	translate([0,0,1]) ASSY_MS();
-	translate([0,0,2+RB_V_th+boardAw]) ASSY_S();
+module VIEW_LINE(){
+    VIEW_ASSY_R(0,20);
+    translate([0,0,2+RB_V_th+boardAw+OCc_K_w]) UNIT_S();
 }
 
-module VIEW_GSOC(){
-	PART_GS();
-	translate([37,0,6]) ASSY_OC();
-}
 
-module VIEW_GMRB(){
-	translate([GM_K_r-3-6,0,0])
-	rotate([0,90,0]) ASSY_RB();
 
-	translate([0,RB_K_r+9,2*pin_rad])
-	rotate([90,0,0]) rotate([0,0,5]) PART_GM();
-}
+////// 整合する空間配置
 
-module VIEW_GMMSRS(){
-	translate([GM_K_r-3-6,0,0])
+
+module VIEWX_ASSY_MS(){
+    translate([B_P_xr+0.5,0,0])
 	rotate([0,90,0])
-	rotate([0,0,90]) VIEW_MSRS();
-
-	translate([0,-RB_K_r-9,2*pin_rad])
-	rotate([-90,0,0]) rotate([0,0,5]) ASSY_H();
+	rotate([0,0,90]) ASSY_MS();
 }
 
-module VIEW_OCOF(){
-	translate([0,0,-boardAw*2]){
-		ASSY_OC();
-		translate([35,12,-6])
-		UNIT_GS();
-	}
-	translate([-OCc_K_w,0,0]) ASSY_OF();
-	translate([0,0,9])
+module VIEWX_ASSY_B(){
+	translate([0,0,2*pin_rad]) rotate([90,0,0]) ASSY_B();
+}
+
+module VIEWX_ASSY_H(theta=0){
+    translate([0,-boardAw-RB_N_or,0])
+    rotate([-90,0,0])
+    rotate([0,0,theta])
+    ASSY_H();
+}
+
+module VIEWX_UNIT_GM(theta=0){
+    translate([0,-boardAw-RB_N_or,0])
+    rotate([-90,0,0])
+    rotate([0,0,theta])
+    UNIT_GM();
+}
+
+module VIEWX_UNIT_GS(theta=0){
+    translate([0,-boardAw-RB_N_or,0])
+    rotate([-90,0,0])
+    rotate([0,0,theta])
+	translate([0,0,HS_V_wr+HS_V_wl+boardAw*2])
+    rotate([180,0,0]) UNIT_GS();
+}
+
+
+module VIEWX_ASSY_R(theta=0){
+	translate([B_P_xr+0.5,0,0])
 	rotate([0,90,0])
-	translate([0,0,6])
-	cylinder(r=3,h=100,$fn=24);
+	rotate([0,0,90+theta]) VIEW_ASSY_R();
 }
 
-module VIEW_TOTAL(){
-	translate([-35,0,-12+pin_rad*2])
+module VIEWX_UNIT_RB(theta=0){
+	translate([B_P_xr+0.5,0,0])
+	rotate([0,90,0])
+	rotate([0,0,90+theta]) ASSY_RB();
+}
+
+module VIEWX_ASSY_OC(theta=0){
+	translate([-B_K_hodx,0,-12+pin_rad*2])
 	rotate([90,0,0])
-	translate([0,0,-3/2*boardAw])
-	VIEW_OCOF();
+	translate([0,0,-3/2*boardAw-boardAw*2])
+    rotate([0,0,theta])
+	ASSY_OC();
+}
 
-	VIEW_GMMSRS();
-//	translate([0,0,2*pin_rad]) rotate([90,0,0]) ASSY_B();
+module VIEWX_PART_OC_c(theta=0){
+	translate([-B_K_hodx,0,-12+pin_rad*2])
+	rotate([90,0,0])
+	translate([0,0,-3/2*boardAw-boardAw])
+    rotate([0,0,theta])
+	PART_OC_c();
+}
+
+module VIEWX_ASSY_OF(theta=0){
+    dx = (180-abs(180-(theta % 360)))/180 * OCc_K_w;
+    
+	translate([-B_K_hodx,0,-12+pin_rad*2])
+	rotate([90,0,0])
+	translate([-OCc_K_w+dx,0,-3/2*boardAw])
+    ASSY_OF();
+}
+
+module VIEWX_UNIT_OF(theta=0){
+    dx = (180-abs(180-(theta % 360)))/180 * OCc_K_w;
+    
+	translate([-B_K_hodx,0,-12+pin_rad*2])
+	rotate([90,0,0])
+	translate([-OCc_K_w+dx,0,-3/2*boardAw])
+    UNIT_OF();
 }
 
 
+//// 組み合わせ表示
+
+module VIEW_SKELETON(t=0){
+    tt = t*0.3;
+    VIEWX_ASSY_R(tt*GM_K_num);
+    VIEWX_ASSY_H(tt*RB_K_num);
+    VIEWX_ASSY_OC(tt*RB_K_num*GS_K_num/OCg_K_num);
+    VIEWX_ASSY_OF(tt*RB_K_num*GS_K_num/OCg_K_num);
+ }
+
+module VIEW_TOTAL(t=0){
+    VIEW_SKELETON(t);
+    VIEWX_ASSY_MS();
+    VIEWX_ASSY_B();
+}
+
+//VIEW_TOTAL(0);
 /////////////////////////////////
 //// 呼び出し例（コメントアウト）
 /////////////////////////////////
@@ -1888,12 +2091,16 @@ module VIEW_TOTAL(){
 //ASSY_R();
 //PART_B_abstract(boardAw);
 //VIEW_MSRS();
-//VIEW_TOTAL();
-//
-VIEW_OCOF();
+//VIEW_TOTAL(0);
+//VIEW_OCOF();
 //PART_S_b();
 
+
+
+
+
+
 //UNIT_B();
-//translate([0,0,boardAw+Hs_V_wr]) rotate([180,0,0])ASSY_H();
+//translate([0,0,boardAw+HS_V_wr]) rotate([180,0,0])ASSY_H();
 //PART_RA_C([50,0,0]);
 //ASSY_RB();

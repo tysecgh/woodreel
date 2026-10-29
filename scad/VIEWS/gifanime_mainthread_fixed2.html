@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>連番PNG -> GIFアニメ変換ツール</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Sortable.js for Drag and Drop Reordering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  <!-- GIF encoder is implemented locally; no external GIF library or Worker required -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/20">
+          <i class="fa-solid fa-film"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-white leading-tight">PNG to GIF Studio</h1>
+          <p class="text-xs text-slate-400">連番画像から高画質GIFアニメーションをローカルで一括生成</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          完全ローカル処理（サーバー送信なし）
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Controls & Canvas Preview (7 cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+
+      <!-- Upload Drop Zone -->
+      <div id="dropZone" class="border-2 border-dashed border-slate-700 hover:border-brand-500 rounded-2xl p-6 text-center transition-all bg-slate-800/40 hover:bg-slate-800/80 cursor-pointer group relative overflow-hidden">
+        <input type="file" id="fileInput" multiple accept="image/png" class="hidden">
+        <div class="flex flex-col items-center justify-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 group-hover:scale-110 group-hover:text-brand-500 group-hover:border-brand-500/50 transition-all shadow-inner">
+            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-slate-200">ここにPNGファイルをドラッグ＆ドロップ</p>
+            <p class="text-xs text-slate-400 mt-1">またはクリックしてファイルを選択（複数選択対応）</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Window & Player Controls -->
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <h2 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-play text-brand-500"></i> プレビュー
+          </h2>
+          <span id="frameCounter" class="text-xs font-mono bg-slate-900/80 px-2.5 py-1 rounded-md text-slate-400 border border-slate-700/50">
+            0 / 0 フレーム
+          </span>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="relative bg-slate-950/80 rounded-xl overflow-hidden min-h-[280px] sm:min-h-[360px] flex items-center justify-center border border-slate-800 shadow-inner grid-pattern">
+          <canvas id="previewCanvas" class="max-w-full max-h-[400px] object-contain"></canvas>
+          <div id="canvasPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-2">
+            <i class="fa-regular fa-image text-4xl mb-1"></i>
+            <p class="text-xs">PNG画像を読み込むとここにプレビューが表示されます</p>
+          </div>
+        </div>
+
+        <!-- Playback Controls Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div class="flex items-center gap-2">
+            <button id="btnPrevFrame" disabled class="p-2.5 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+              <i class="fa-solid fa-backward-step"></i>
+            </button>
+            <button id="btnPlayPause" disabled class="px-4 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-2 shadow-md shadow-brand-500/20">
+              <i id="playIcon" class="fa-solid fa-play"></i> <span id="playBtnText">再生</span>
+            </button>
+            <button id="btnNextFrame" disabled class="p-2.5 rounded-lg bg-slate-700/50 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+              <i class="fa-solid fa-forward-step"></i>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs text-slate-400 font-mono">
+            <span>解像度: <strong id="resDisplay" class="text-slate-200">未設定</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Panel -->
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+        <h2 class="font-bold text-sm text-slate-200 flex items-center gap-2 border-b border-slate-700/60 pb-3">
+          <i class="fa-solid fa-sliders text-brand-500"></i> アニメーション設定
+        </h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <!-- FPS Control -->
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label for="fpsInput" class="text-xs font-semibold text-slate-300">フレームレート (FPS)</label>
+              <span id="fpsVal" class="text-xs font-mono text-brand-400 font-bold">10 FPS</span>
+            </div>
+            <input type="range" id="fpsInput" min="1" max="30" value="10" class="w-full accent-brand-500 bg-slate-700 rounded-lg h-2 cursor-pointer">
+            <p class="text-[11px] text-slate-400 mt-1">1秒あたりのコマ数 (標準: 8?12 FPS)</p>
+          </div>
+
+          <!-- Quality / Color Sampling -->
+          <div>
+            <label for="qualityInput" class="text-xs font-semibold text-slate-300 block mb-1.5">品質 (カラーサンプル)</label>
+            <select id="qualityInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+              <option value="1">最高画質 (処理時間が長め)</option>
+              <option value="10" selected>標準 (推奨)</option>
+              <option value="20">高速 (ファイルサイズ軽め)</option>
+            </select>
+            <p class="text-[11px] text-slate-400 mt-1">数値が小さいほど色精度が高くなります</p>
+          </div>
+
+          <!-- Custom Resize Options -->
+          <div>
+            <label class="text-xs font-semibold text-slate-300 block mb-1.5">出力サイズ調整</label>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1">
+                <span class="text-[10px] text-slate-500 font-mono">W:</span>
+                <input type="number" id="outWidth" placeholder="自動" class="w-full bg-transparent text-xs text-slate-200 focus:outline-none">
+              </div>
+              <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1">
+                <span class="text-[10px] text-slate-500 font-mono">H:</span>
+                <input type="number" id="outHeight" placeholder="自動" class="w-full bg-transparent text-xs text-slate-200 focus:outline-none">
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">空欄の場合は元画像の解像度を維持します</p>
+          </div>
+
+          <!-- Loop & Transparent Options -->
+          <div class="flex flex-col justify-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="loopCheck" checked class="rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-0 focus:ring-offset-0">
+              <span class="text-xs text-slate-300">無限ループ再生</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="transparentCheck" class="rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-0 focus:ring-offset-0">
+              <span class="text-xs text-slate-300">背景の透明度を維持 (透過PNG用)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-2">
+          <button id="btnGenerate" disabled class="w-full py-3.5 px-4 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> GIFアニメーションを生成
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Image Sequence / Frame List (5 cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+
+      <div class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-5 shadow-xl flex-1 flex flex-col h-full min-h-[400px]">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-3">
+          <h2 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-brand-500"></i> フレーム一覧
+            <span id="listCountBadge" class="text-xs font-mono bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full border border-brand-500/30">0</span>
+          </h2>
+          <div class="flex items-center gap-2">
+            <button id="btnSortAlpha" title="ファイル名順にソート" class="text-xs bg-slate-700/60 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-md border border-slate-600/50 transition flex items-center gap-1">
+              <i class="fa-solid fa-arrow-down-a-z"></i> 名前順
+            </button>
+            <button id="btnClearAll" title="すべて削除" class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-2.5 py-1 rounded-md border border-rose-500/20 transition flex items-center gap-1">
+              <i class="fa-solid fa-trash-can"></i> クリア
+            </button>
+          </div>
+        </div>
+
+        <p class="text-[11px] text-slate-400 mb-3">
+          <i class="fa-solid fa-grip-vertical mr-1"></i> ドラッグ＆ドロップでフレームの順序を自由に並び替えることができます。
+        </p>
+
+        <!-- Frame List Container (Scrollable) -->
+        <div class="flex-1 overflow-y-auto max-h-[500px] lg:max-h-[calc(100vh-280px)] pr-1 custom-scrollbar">
+          <ul id="frameList" class="space-y-2">
+            <!-- Items injected by JS dynamically -->
+          </ul>
+
+          <div id="emptyListNotice" class="h-48 flex flex-col items-center justify-center text-slate-500 text-xs border-2 border-dashed border-slate-700/50 rounded-xl">
+            <i class="fa-solid fa-images text-2xl mb-2 opacity-50"></i>
+            画像を読み込むとフレームがここに配置されます
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Progress Modal / Banner Overlay -->
+  <div id="progressModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4">
+      <div class="relative w-16 h-16 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full border-4 border-brand-500/20 border-t-brand-500 animate-spin"></div>
+        <i class="fa-solid fa-gear text-xl text-brand-400"></i>
+      </div>
+      <div>
+        <h3 class="font-bold text-base text-slate-100">GIF生成中...</h3>
+        <p id="progressText" class="text-xs text-slate-400 mt-1">フレームを読み込んでレンダリングを行っています</p>
+      </div>
+      <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-700">
+        <div id="progressBar" class="bg-brand-500 h-full w-0 transition-all duration-150"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Download Modal / Result Overlay -->
+  <div id="resultModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col items-center text-center gap-5">
+      <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xl">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      
+      <div>
+        <h3 class="font-bold text-lg text-slate-100">GIFアニメの生成が完了しました！</h3>
+        <p class="text-xs text-slate-400 mt-1">下記から生成されたGIFの保存・プレビューが可能です</p>
+      </div>
+
+      <!-- Generated GIF Preview Box -->
+      <div class="bg-slate-950 rounded-xl p-2 border border-slate-700 max-h-[220px] w-full flex items-center justify-center overflow-hidden grid-pattern">
+        <img id="resultGifImg" class="max-h-[200px] object-contain rounded" alt="Generated GIF">
+      </div>
+
+      <div id="resultFileInfo" class="text-xs font-mono text-slate-400">
+        ファイルサイズ: <span id="fileSizeDisplay" class="text-emerald-400 font-bold">0 MB</span>
+      </div>
+
+      <div class="flex gap-3 w-full">
+        <button id="btnCloseModal" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold rounded-xl transition">
+          閉じる
+        </button>
+        <a id="btnDownload" download="animation.gif" href="#" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-download"></i> 保存する
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Styling for Canvas Checkerboard Pattern -->
+  <style>
+    .grid-pattern {
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      background-image: 
+        linear-gradient(45deg, #1e293b 25%, transparent 25%),
+        linear-gradient("-45deg", #1e293b 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1e293b 75%),
+        linear-gradient("-45deg", transparent 75%, #1e293b 75%);
+    }
+
+    /* Custom Scrollbar Styles */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(71, 85, 105, 1);
+    }
+  </style>
+
+  <!-- Application Logic JS -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Global State
+      let frames = []; // Array of Objects: { id, file, img, name }
+      let isPlaying = false;
+      let currentFrameIndex = 0;
+      let animationTimer = null;
+
+      // DOM Elements
+      const dropZone = document.getElementById('dropZone');
+      const fileInput = document.getElementById('fileInput');
+      const frameList = document.getElementById('frameList');
+      const emptyListNotice = document.getElementById('emptyListNotice');
+      const listCountBadge = document.getElementById('listCountBadge');
+      
+      const previewCanvas = document.getElementById('previewCanvas');
+      const ctx = previewCanvas.getContext('2d');
+      const canvasPlaceholder = document.getElementById('canvasPlaceholder');
+      const frameCounter = document.getElementById('frameCounter');
+      const resDisplay = document.getElementById('resDisplay');
+
+      const btnPlayPause = document.getElementById('btnPlayPause');
+      const playIcon = document.getElementById('playIcon');
+      const playBtnText = document.getElementById('playBtnText');
+      const btnPrevFrame = document.getElementById('btnPrevFrame');
+      const btnNextFrame = document.getElementById('btnNextFrame');
+
+      const fpsInput = document.getElementById('fpsInput');
+      const fpsVal = document.getElementById('fpsVal');
+      const qualityInput = document.getElementById('qualityInput');
+      const outWidth = document.getElementById('outWidth');
+      const outHeight = document.getElementById('outHeight');
+      const loopCheck = document.getElementById('loopCheck');
+      const transparentCheck = document.getElementById('transparentCheck');
+
+      const btnSortAlpha = document.getElementById('btnSortAlpha');
+      const btnClearAll = document.getElementById('btnClearAll');
+      const btnGenerate = document.getElementById('btnGenerate');
+
+      const progressModal = document.getElementById('progressModal');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+
+      const resultModal = document.getElementById('resultModal');
+      const resultGifImg = document.getElementById('resultGifImg');
+      const fileSizeDisplay = document.getElementById('fileSizeDisplay');
+      const btnDownload = document.getElementById('btnDownload');
+      const btnCloseModal = document.getElementById('btnCloseModal');
+
+      // Initialize Sortable.js for Drag and Drop Reordering
+      new Sortable(frameList, {
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'bg-brand-500/20',
+        onEnd: function () {
+          // Reorder `frames` array based on new DOM order
+          const newFrames = [];
+          const items = frameList.querySelectorAll('li');
+          items.forEach(item => {
+            const id = item.dataset.id;
+            const target = frames.find(f => f.id === id);
+            if (target) newFrames.push(target);
+          });
+          frames = newFrames;
+          updateFrameIndices();
+          drawCurrentFrame();
+        }
+      });
+
+      // Event Listeners for File Inputs
+      dropZone.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-brand-500', 'bg-slate-800');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-brand-500', 'bg-slate-800');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-brand-500', 'bg-slate-800');
+        if (e.dataTransfer.files.length > 0) {
+          handleFiles(e.dataTransfer.files);
+        }
+      });
+
+      // Handle Loaded Files
+      function handleFiles(files) {
+        const pngFiles = Array.from(files).filter(file => file.type === 'image/png' || file.name.endsWith('.png'));
+        
+        if (pngFiles.length === 0) {
+          alert('PNG形式の画像ファイルを選択してください。');
+          return;
+        }
+
+        let loadedCount = 0;
+        pngFiles.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const id = 'frame_' + Math.random().toString(36).substr(2, 9);
+              frames.push({
+                id: id,
+                file: file,
+                img: img,
+                name: file.name
+              });
+
+              loadedCount++;
+              if (loadedCount === pngFiles.length) {
+                onFramesUpdated();
+              }
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      // Update State After Frame Modifications
+      function onFramesUpdated() {
+        renderFrameList();
+        if (frames.length > 0) {
+          if (currentFrameIndex >= frames.length) {
+            currentFrameIndex = frames.length - 1;
+          }
+          setupCanvasSize();
+          drawCurrentFrame();
+          canvasPlaceholder.classList.add('hidden');
+        } else {
+          canvasPlaceholder.classList.remove('hidden');
+          ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+          resDisplay.textContent = '未設定';
+          stopAnimation();
+        }
+        updateUIControls();
+      }
+
+      // Adjust Canvas Aspect / Resolution based on First Frame
+      function setupCanvasSize() {
+        if (frames.length === 0) return;
+        const firstImg = frames[0].img;
+        previewCanvas.width = firstImg.naturalWidth;
+        previewCanvas.height = firstImg.naturalHeight;
+        resDisplay.textContent = `${firstImg.naturalWidth} × ${firstImg.naturalHeight} px`;
+      }
+
+      // Render Active Frame onto Preview Canvas
+      function drawCurrentFrame() {
+        if (frames.length === 0) return;
+        const frame = frames[currentFrameIndex];
+        ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        ctx.drawImage(frame.img, 0, 0, previewCanvas.width, previewCanvas.height);
+
+        // Highlight active item in list
+        const items = frameList.querySelectorAll('li');
+        items.forEach((item, idx) => {
+          if (idx === currentFrameIndex) {
+            item.classList.add('border-brand-500', 'bg-slate-700/80');
+          } else {
+            item.classList.remove('border-brand-500', 'bg-slate-700/80');
+          }
+        });
+
+        frameCounter.textContent = `${currentFrameIndex + 1} / ${frames.length} フレーム`;
+      }
+
+      // Render Dynamic Frame List UI
+      function renderFrameList() {
+        frameList.innerHTML = '';
+        
+        if (frames.length === 0) {
+          emptyListNotice.classList.remove('hidden');
+          listCountBadge.textContent = '0';
+          return;
+        }
+
+        emptyListNotice.classList.add('hidden');
+        listCountBadge.textContent = frames.length.toString();
+
+        frames.forEach((frame, index) => {
+          const li = document.createElement('li');
+          li.dataset.id = frame.id;
+          li.className = 'flex items-center justify-between p-2 rounded-xl bg-slate-800 border border-slate-700/80 hover:border-slate-600 transition group';
+
+          li.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="drag-handle text-slate-500 hover:text-slate-300 cursor-grab px-1">
+                <i class="fa-solid fa-grip-vertical"></i>
+              </div>
+              <span class="text-[11px] font-mono text-slate-400 w-5 text-right font-bold flex-shrink-0">${index + 1}</span>
+              <img src="${frame.img.src}" class="w-10 h-10 object-contain bg-slate-900 rounded-md border border-slate-700/60 flex-shrink-0 grid-pattern">
+              <span class="text-xs text-slate-200 truncate font-mono">${frame.name}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <button class="btn-remove p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-700/50 transition">
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+          `;
+
+          // Event: Remove Single Frame
+          li.querySelector('.btn-remove').addEventListener('click', (e) => {
+            e.stopPropagation();
+            frames.splice(index, 1);
+            onFramesUpdated();
+          });
+
+          // Event: Click List Item to Select Frame
+          li.addEventListener('click', () => {
+            currentFrameIndex = index;
+            drawCurrentFrame();
+          });
+
+          frameList.appendChild(li);
+        });
+      }
+
+      function updateFrameIndices() {
+        const items = frameList.querySelectorAll('li');
+        items.forEach((item, idx) => {
+          const numSpan = item.querySelector('.font-mono.w-5');
+          if (numSpan) numSpan.textContent = idx + 1;
+        });
+      }
+
+      // Player Controls logic
+      function updateUIControls() {
+        const hasFrames = frames.length > 0;
+        btnPlayPause.disabled = !hasFrames;
+        btnPrevFrame.disabled = !hasFrames;
+        btnNextFrame.disabled = !hasFrames;
+        btnGenerate.disabled = !hasFrames;
+      }
+
+      function startAnimation() {
+        if (frames.length === 0) return;
+        isPlaying = true;
+        playIcon.className = 'fa-solid fa-pause';
+        playBtnText.textContent = '一時停止';
+
+        const interval = 1000 / parseInt(fpsInput.value, 10);
+        animationTimer = setInterval(() => {
+          currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+          drawCurrentFrame();
+        }, interval);
+      }
+
+      function stopAnimation() {
+        isPlaying = false;
+        playIcon.className = 'fa-solid fa-play';
+        playBtnText.textContent = '再生';
+        if (animationTimer) {
+          clearInterval(animationTimer);
+          animationTimer = null;
+        }
+      }
+
+      btnPlayPause.addEventListener('click', () => {
+        if (isPlaying) {
+          stopAnimation();
+        } else {
+          startAnimation();
+        }
+      });
+
+      btnPrevFrame.addEventListener('click', () => {
+        stopAnimation();
+        currentFrameIndex = (currentFrameIndex - 1 + frames.length) % frames.length;
+        drawCurrentFrame();
+      });
+
+      btnNextFrame.addEventListener('click', () => {
+        stopAnimation();
+        currentFrameIndex = (currentFrameIndex + 1) % frames.length;
+        drawCurrentFrame();
+      });
+
+      // FPS Slider change
+      fpsInput.addEventListener('input', (e) => {
+        fpsVal.textContent = `${e.target.value} FPS`;
+        if (isPlaying) {
+          stopAnimation();
+          startAnimation();
+        }
+      });
+
+      // Sort Alphabetically
+      btnSortAlpha.addEventListener('click', () => {
+        frames.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+        onFramesUpdated();
+      });
+
+      // Clear All Frames
+      btnClearAll.addEventListener('click', () => {
+        if (frames.length > 0 && confirm('すべてのフレームを削除しますか？')) {
+          frames = [];
+          onFramesUpdated();
+        }
+      });
+
+      // GIF Generation Logic (main thread; no Web Worker)
+      btnGenerate.addEventListener('click', () => {
+        if (frames.length === 0) return;
+
+        stopAnimation();
+        progressModal.classList.remove('hidden');
+        progressBar.style.width = '0%';
+        progressText.textContent = 'GIFエンコーダーを初期化しています...';
+
+        // Allow the modal to paint before starting CPU-heavy work.
+        setTimeout(() => {
+          try {
+            generateGIFMainThread();
+          } catch (err) {
+            progressModal.classList.add('hidden');
+            console.error(err);
+            alert('GIF生成に失敗しました。gifencライブラリが読み込まれているか、インターネット接続を確認してください。\\n' + (err?.message || err));
+          }
+        }, 50);
+      });
+
+      // Pure JavaScript GIF89a encoder. Works from file:// without Worker or GIF CDN.
+      function generateGIFMainThread() {
+        const fps = Math.max(1, parseInt(fpsInput.value, 10) || 10);
+        const delayCs = Math.max(1, Math.round(100 / fps));
+        const isTransparent = transparentCheck.checked;
+        const sampleImg = frames[0].img;
+        const targetWidth = Math.max(1, Math.min(65535, parseInt(outWidth.value, 10) || sampleImg.naturalWidth));
+        const targetHeight = Math.max(1, Math.min(65535, parseInt(outHeight.value, 10) || sampleImg.naturalHeight));
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = targetWidth;
+        tempCanvas.height = targetHeight;
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        const output = [];
+        const push = (...values) => output.push(...values.map(v => v & 255));
+        const pushWord = n => push(n & 255, (n >> 8) & 255);
+
+        // Global 3-3-2 RGB palette (256 colors).
+        const palette = [];
+        for (let i = 0; i < 256; i++) {
+          const r = (i >> 5) & 7, g = (i >> 2) & 7, b = i & 3;
+          palette.push(Math.round(r * 255 / 7), Math.round(g * 255 / 7), Math.round(b * 255 / 3));
+        }
+        const ascii = str => { for (let i = 0; i < str.length; i++) push(str.charCodeAt(i)); };
+        ascii('GIF89a');
+        pushWord(targetWidth); pushWord(targetHeight);
+        push(0xF7, 0, 0); // global color table, 8-bit color resolution, 256 entries
+        output.push(...palette);
+
+        function writeSubBlocks(bytes) {
+          for (let i = 0; i < bytes.length; i += 255) {
+            const chunk = bytes.slice(i, i + 255);
+            push(chunk.length); output.push(...chunk);
+          }
+          push(0);
+        }
+
+        function lzwEncode(indexed) {
+          const CLEAR = 256, END = 257;
+          let codeSize = 9, nextCode = 258;
+          let dict = new Map();
+          const bytes = [];
+          let bitBuffer = 0, bitCount = 0;
+          const emit = code => {
+            bitBuffer |= code << bitCount;
+            bitCount += codeSize;
+            while (bitCount >= 8) { bytes.push(bitBuffer & 255); bitBuffer >>>= 8; bitCount -= 8; }
+          };
+          const reset = () => { dict = new Map(); codeSize = 9; nextCode = 258; };
+          emit(CLEAR);
+          if (!indexed.length) { emit(END); if (bitCount) bytes.push(bitBuffer & 255); return bytes; }
+          let prefix = indexed[0];
+          for (let i = 1; i < indexed.length; i++) {
+            const symbol = indexed[i];
+            const key = prefix * 256 + symbol;
+            if (dict.has(key)) {
+              prefix = dict.get(key);
+            } else {
+              emit(prefix);
+              if (nextCode < 4096) {
+                dict.set(key, nextCode++);
+                if (nextCode > (1 << codeSize) && codeSize < 12) codeSize++;
+              } else {
+                emit(CLEAR);
+                reset();
+              }
+              prefix = symbol;
+            }
+          }
+          emit(prefix); emit(END);
+          if (bitCount) bytes.push(bitBuffer & 255);
+          return bytes;
+        }
+
+        const totalFrames = frames.length;
+        let index = 0;
+        function encodeNextFrame() {
+          try {
+            const frame = frames[index];
+            tempCtx.clearRect(0, 0, targetWidth, targetHeight);
+            if (!isTransparent) {
+              tempCtx.fillStyle = '#FFFFFF';
+              tempCtx.fillRect(0, 0, targetWidth, targetHeight);
+            }
+            tempCtx.drawImage(frame.img, 0, 0, targetWidth, targetHeight);
+            const rgba = tempCtx.getImageData(0, 0, targetWidth, targetHeight).data;
+            const indexed = new Uint8Array(targetWidth * targetHeight);
+            for (let p = 0, q = 0; p < rgba.length; p += 4, q++) {
+              if (isTransparent && rgba[p + 3] < 128) {
+                indexed[q] = 0;
+              } else {
+                const ri = rgba[p] >> 5, gi = rgba[p + 1] >> 5, bi = rgba[p + 2] >> 6;
+                let colorIndex = (ri << 5) | (gi << 2) | bi;
+                if (isTransparent && colorIndex === 0) colorIndex = 1;
+                indexed[q] = colorIndex;
+              }
+            }
+
+            // Graphic Control Extension; transparency index 0 is reserved when enabled.
+            push(0x21, 0xF9, 4, isTransparent ? 0x05 : 0x04);
+            pushWord(delayCs); push(isTransparent ? 0 : 0, 0);
+            // Image descriptor: use global palette, no interlace.
+            push(0x2C); pushWord(0); pushWord(0); pushWord(targetWidth); pushWord(targetHeight); push(0);
+            push(8); // LZW minimum code size
+            writeSubBlocks(lzwEncode(indexed));
+
+            index++;
+            const pct = Math.round(index / totalFrames * 100);
+            progressBar.style.width = `${pct}%`;
+            progressText.textContent = `GIFを生成中... ${index} / ${totalFrames} フレーム (${pct}%)`;
+            if (index < totalFrames) {
+              setTimeout(encodeNextFrame, 0);
+            } else {
+              if (loopCheck.checked) {
+                // Netscape loop extension must precede image data; insert after global palette.
+                const loopExt = [0x21,0xFF,0x0B, ...Array.from('NETSCAPE2.0', c => c.charCodeAt(0)), 0x03,0x01,0x00,0x00,0x00];
+                output.splice(13 + 768, 0, ...loopExt);
+              }
+              push(0x3B); // trailer
+              const blob = new Blob([new Uint8Array(output)], { type: 'image/gif' });
+              progressModal.classList.add('hidden');
+              const url = URL.createObjectURL(blob);
+              resultGifImg.src = url;
+              btnDownload.href = url;
+              fileSizeDisplay.textContent = `${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
+              resultModal.classList.remove('hidden');
+            }
+          } catch (err) {
+            progressModal.classList.add('hidden');
+            console.error(err);
+            alert('GIF生成に失敗しました。\n' + (err?.message || err));
+          }
+        }
+        encodeNextFrame();
+      }
+
+      btnCloseModal.addEventListener('click', () => {
+        resultModal.classList.add('hidden');
+      });
+
+    });
+  </script>
+</body>
+</html>
