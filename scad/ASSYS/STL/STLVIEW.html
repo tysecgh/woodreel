@@ -1,0 +1,214 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STL Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: sans-serif;
+            color: #fff;
+        }
+        #drop-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(26, 26, 26, 0.9);
+            z-index: 10;
+            transition: opacity 0.3s ease;
+            text-align: center;
+            pointer-events: auto;
+        }
+        #drop-zone.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .drop-box {
+            border: 3px dashed #4CAF50;
+            padding: 40px 60px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 10px; }
+        p { color: #aaa; font-size: 0.9rem; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 5;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="info">操作方法: 左ドラッグ＝回転 | 右ドラッグ＝平行移動 | スクロール＝拡大縮小</div>
+
+    <div id="drop-zone">
+        <div class="drop-box">
+            <h1>STLファイルをここにドロップ</h1>
+            <p>またはクリックしてファイルを選択</p>
+        </div>
+        <input type="file" id="file-input" accept=".stl" style="display: none;">
+    </div>
+
+    <!-- Three.js と STLLoader, OrbitControls の CDN読込 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls, currentMesh;
+
+        init();
+        animate();
+
+        function init() {
+            // シーンの作成
+            scene = new THREE.Scene();
+
+            // カメラの作成
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(100, 100, 100);
+
+            // レンダラーの作成
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // コントロール（マウス操作）の作成
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // ライティング
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight1.position.set(1, 1, 1).normalize();
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+            dirLight2.position.set(-1, -1, -1).normalize();
+            scene.add(dirLight2);
+
+            // グリッドヘルパー
+            const gridHelper = new THREE.GridHelper(200, 50, 0x444444, 0x222222);
+            gridHelper.position.y = -10;
+            scene.add(gridHelper);
+
+            // ウィンドウリサイズ対応
+            window.addEventListener('resize', onWindowResize);
+
+            // ドラッグ＆ドロップイベントの設定
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    loadSTLFile(e.target.files[0]);
+                }
+            });
+
+            window.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.background = 'rgba(26, 26, 26, 0.95)';
+            });
+
+            window.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.style.background = 'rgba(26, 26, 26, 0.9)';
+            });
+
+            window.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.background = 'rgba(26, 26, 26, 0.9)';
+                if (e.dataTransfer.files.length > 0) {
+                    loadSTLFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        function loadSTLFile(file) {
+            if (!file.name.toLowerCase().endsWith('.stl')) {
+                alert('STLファイルを選択してください。');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = function (e) {
+                const contents = e.target.result;
+                
+                const loader = new THREE.STLLoader();
+                const geometry = loader.parse(contents);
+
+                // 既存のメッシュがあれば削除
+                if (currentMesh) {
+                    scene.remove(currentMesh);
+                    currentMesh.geometry.dispose();
+                    currentMesh.material.dispose();
+                }
+
+                // マテリアルとメッシュの作成
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x2196F3,
+                    roughness: 0.4,
+                    metalness: 0.2
+                });
+
+                currentMesh = new THREE.Mesh(geometry, material);
+
+                // ジオメトリを中心化して、カメラの焦点を合わせる
+                geometry.computeBoundingBox();
+                const box = geometry.boundingBox;
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+                geometry.center(); // 中心を原点に移動
+
+                scene.add(currentMesh);
+
+                // カメラの距離を自動調整
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                const maxDim = Math.max(size.x, size.y, size.z);
+                camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
+                controls.target.set(0, 0, 0);
+                controls.update();
+
+                // ドロップゾーンを非表示にする
+                document.getElementById('drop-zone').classList.add('hidden');
+            };
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+-q
+-dNOPAUSE
+-sDEVICE=pbmraw
+-sOUTPUTFILE=B.png.pbm
+-r300
+-g1181x1181
+tmp$.ps
+quit.ps

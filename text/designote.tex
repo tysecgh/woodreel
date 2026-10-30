@@ -1,137 +1,168 @@
-\documentclass{jarticle}
+﻿\documentclass[dvipdfmx]{jarticle}
 \usepackage{amsmath,amssymb}
 \usepackage{xfp}
+\usepackage[dvipdfmx]{graphicx}
+
 
 \begin{document}
 
-\title{�ؐ��X�s�j���O���[���̍\���T�v�݌v}
+\title{木製スピニングリールの構造概要設計}
 \maketitle
 
-\section{���[���S�̍\���ƕ���ID}
+\section{リール全体構造と部位ID}
+\includegraphics[scale=0.5]{fig/TOTALX.png}
 \begin{itemize}
-  \item \textbf{[B] �{�f�B} �t�b�g��� 
-  \item \textbf{[S] �X�v�[��} ���C���V���t�g�ɉ����đO�㓮, �I�V���[�V�����@�\�ɂ���ē���
-  \item \textbf{[R] ���[�^�[} �O��ϑw�\�� / ���C���V���t�g�����ɉ�] , �n���h���n�ɂ���ē���
+  \item \textbf{[B] ボディ} フット一体 
+  \item \textbf{[S] スプール} メインシャフトに沿って前後動, オシレーション機構によって動く
+  \item \textbf{[R] ローター} 前後積層構造 / メインシャフトを軸に回転 , ハンドル系によって動く
     \begin{itemize}
-      \item \textbf{[RB]} ���[�^�[�{�f�B�i�s�����b�N�z�C�[���ƈ�̉����ăA�[����ێ�����, �d�v���i�̈��. �O��ϑw�\���j
-      \item \textbf{[RA]} �A�[���i���[�^�[�{�f�B��ŉ����Ď��̊����E���o��؂�ւ��镔�ʁj
-      \item \textbf{[RS]} �X�g�b�p�[�i����莞�A�[�����Œ肷�镔�ʁj
+      \item \textbf{[RB]} ローターボディ（ピンラックホイールと一体化してアームを保持する, 重要部品の一つ. 前後積層構造）
+      \item \textbf{[RA]} アーム（ローターボディ上で可動して糸の巻取り・放出を切り替える部位）
+      \item \textbf{[RS]} ストッパー（巻取り時アームを固定する部位）
     \end{itemize}
-  \item \textbf{[M] ���C���V���t�g} �X�v�[���ƃ��[�^�[���{�f�B�ɕێ�
-  \item \textbf{[H] �n���h���n} �͂̓��͂Ɠ`�B, ���[�^�[�ƃI�V���[�V�����@�\���쓮
+  \item \textbf{[M] メインシャフト} スプールとローターをボディに保持
+  \item \textbf{[H] ハンドル系} 力の入力と伝達, ローターとオシレーション機構を駆動
     \begin{itemize}
-      \item \textbf{[HK]} �n���h���i���ۉ񂷂Ƃ���C�n���h���V���t�g�ɍS���j
-      \item \textbf{[HS]} �n���h���V���t�g
-      \item \textbf{[GM]} ���C�����󎕎ԁi���[�^�[�ɉ�]��`���镔��, ���̈ʒu���x�͋ɂ߂ďd�v, �n���h���ɍS���j
-      \item \textbf{[GS]} �T�u���󎕎ԁi�I�V���[�V�����@�\�ɉ�]��`���镔�ʁC�n���h���V���t�g�ɍS���j
+      \item \textbf{[HK]} ハンドル（実際回すところ，ハンドルシャフトに拘束）
+      \item \textbf{[HS]} ハンドルシャフト
+      \item \textbf{[GM]} メイン冠状歯車（ローターに回転を伝える部位, 歯の位置精度は極めて重要, ハンドルに拘束）
+      \item \textbf{[GS]} サブ冠状歯車（オシレーション機構に回転を伝える部位，ハンドルシャフトに拘束）
     \end{itemize}
-  \item \textbf{[O] �I�V���[�V�����@�\} �n���h������󂯂���]��O��^���ɕϊ����ăX�v�[�����쓮
+  \item \textbf{[O] オシレーション機構} ハンドルから受けた回転を前後運動に変換してスプールを駆動
     \begin{itemize}
-      \item \textbf{[OC]} �J�����ԁi�n���h���V���t�g�����]���󂯂�p�[�c�ƃI�V���[�V�����^���𐶐�����J������̂ɂȂ������́j
-      \item \textbf{[OF]} �󂯎q�i�J������͂��󂯂ăI�V���[�V��������p�[�c, �I�V���[�V�����V���t�g���S���j
-      \item \textbf{[OS]} �I�V���[�V�����V���t�g�i�I�V���[�V�����^�����X�v�[���ɓ`�B����p�[�c, �󂯎q�ƃX�v�[���ɍS���j
+      \item \textbf{[OC]} カム歯車（ハンドルシャフトから回転を受けるパーツとオシレーション運動を生成するカムが一体になったもの）
+      \item \textbf{[OF]} 受け子（カムから力を受けてオシレーションするパーツ, オシレーションシャフトを拘束）
+      \item \textbf{[OS]} オシレーションシャフト（オシレーション運動をスプールに伝達するパーツ, 受け子とスプールに拘束）
     \end{itemize}
 \end{itemize}
+\includegraphics[scale=0.5]{fig/SKELETONX.png}
 
-\section{�e�p�[�c�̋Ǐ��I�\���i���[�J���ڍׁj}
+\section{各パーツの局所的構成（ローカル詳細）}
 
-\subsection*{[B] �{�f�B�ڍ�}
-�e���̋@�\�̎󂯎��Ԃ̈ʒu���x�͍ł��d�v
-6�o���̔ō��E�ϑw�\��.
- L3-1CR1-4�͌Œ����Ĉ�̉�. L4�w�͕����\��.
+\subsection*{[B] ボディ詳細}
+\includegraphics[scale=0.5]{fig/B.png}
+
+各動体機構の受け軸間の位置精度は最も重要
+6㎜厚の板で左右積層構造.
+ L3-1CR1-3は固着して一体化. L4層は分離可能に.
       \begin{itemize}
-        \item \textbf{[B-C]} C�w�i�I�V���[�V�����V���t�g, �t�b�g�j
-        \item \textbf{[B-L1]} L1�w�i�󂯎q, �t�b�g�j
-        \item \textbf{[B-L2]} L2�w�i�J�����ԃJ�����j
-        \item \textbf{[B-L3]} L3�w�i�J�����Ԏ��ԕ��A�T�u���󎕎Ԏ����j
-        \item \textbf{[B-L4]} L4�w�i�J�����Ԏ��󂯁A�T�u���󎕎Ԋ�A�n���h���V���t�g�����󂯁j
-        \item \textbf{[B-R1]} R1�w�i�\����, �t�b�g�j
-        \item \textbf{[B-R2]} R2�w�i�\���́j
-        \item \textbf{[B-R3]} R3�w�i�\���́j
-        \item \textbf{[B-R4]} R4�w�i�\���́A�n���h���V���t�g�E���󂯁j
+        \item \textbf{[B-C]} C層（オシレーションシャフト, フット）
+        \item \textbf{[B-L1]} L1層（受け子, フット）
+        \item \textbf{[B-L2]} L2層（カム歯車カム部）
+        \item \textbf{[B-L3]} L3層（カム歯車歯車部、サブ冠状歯車歯部）
+        \item \textbf{[B-L4]} L4層（カム歯車軸受け、サブ冠状歯車基部、ハンドルシャフト左側受け）
+		この層のみ一体化せず開けるようにする事でオシレーション機構にアクセスできるようにする
+        \item \textbf{[B-R1]} R1層（構造体, フット）
+        \item \textbf{[B-R2]} R2層（構造体）
+        \item \textbf{[B-R3]} R3層（構造体）ンドルシャフト右側受け, 
+		現設計ではメインギアとの間に 3mm分の隙間があり，ワッシャー的な間隔調整部品ががいる
+        \item \textbf{[B-F]} フット部分 
       \end{itemize}
 
-�t�b�g�����͕��G�ȋ@�\�͈�؂Ȃ����P���ɍł��͂�������Ƃ������ʂŗ��ӂ��K�v.
-(���Ƃ̗͂Ƃ������l�Ԃ������Ƃ��̗͂��ł��傫��. �M�A�䂩�猾���Ă����R�ł��邪)
+
+フット部分は複雑な機構は一切ないが単純に最も力がかかるという測面で留意が必要.
+(魚との力というより人間が巻くときの力が最も大きい. ギア比から言っても当然であるが)
 
 
-\subsection*{[M] ���C���V���t�g�ڍ�}
-��]���郍�[�^�[�̐�ŃX�v�[�����O�シ��@�\��, ���̒���\�����K�{�ƂȂ�.
-�p�C�v��͉��H��x�������Ȃ邽��, 
-���[�^�[��(��)�~�E����ڂ��鑽�p�`�̒��_�ŕێ�����.
+\subsection*{[M] メインシャフト詳細}
+\includegraphics[scale=0.5]{fig/MS.png}
 
-6�p�`�̒��_�Ɏ���z�u���đ�~���\������\���A
-������6���������̓I�V���[�V�����V���t�g�Ƃ̊�������邽�߃I�~�b�g.
-(���_��͎O�p�`�̒��_�ŏ\���Ȃ̂�)
+回転するローターの先でスプールが前後する機構上, 一種の中空構造が必須となる.
+パイプ状は加工難度が高くなるため, 
+ローターの(大)円孔を内接する多角形の頂点で保持する.
+
+6角形の頂点に軸を配置して大円を構成する構造、
+ただし6時方向軸はオシレーションシャフトとの干渉を避けるためオミット.
+(理論上は三角形の頂点で十分なので)
 
 
       \begin{itemize}
-        \item \textbf{[M-S0]} S0 (����, ���[�^�[�ƃX�v�[���ێ�)
-        \item \textbf{[M-S2]} S2 (�Z��, ���[�^�[�ێ�)
-        \item \textbf{[M-S4]} S4 (����, ���[�^�[�ƃX�v�[���ێ�)
-        \item \textbf{[M-S8]} S8 (����, ���[�^�[�ƃX�v�[���ێ�)
-        \item \textbf{[M-S10]} S10 (�Z��, ���[�^�[�ێ�)
-        \item \textbf{[M-Bb]} Bb�i�V���t�g���Ȃ����\���{�f�B���j
-        \item \textbf{[M-Bt0]} Bt0�i�V���t�g���Ȃ����\���g�b�v���j
-        \item \textbf{[M-Bt1]} Bt1�i�V���t�g���Ȃ����\���g�b�v���A���[�^�[��ێ��j
+        \item \textbf{[M-S0]} S0 (長い, ローターとスプール保持)
+        \item \textbf{[M-S2]} S2 (短い, ローター保持)
+        \item \textbf{[M-S4]} S4 (長い, ローターとスプール保持)
+        \item \textbf{[M-S8]} S8 (長い, ローターとスプール保持)
+        \item \textbf{[M-S10]} S10 (短い, ローター保持)
+        \item \textbf{[M-Bb]} Bb（シャフトをつなぐ橋構造ボディ側）
+        \item \textbf{[M-Bt0]} Bt0（シャフトをつなぐ橋構造トップ側）
+        \item \textbf{[M-Bt1]} Bt1（シャフトをつなぐ橋構造トップ側、ローターを保持）
       \end{itemize}
 
-\subsection*{[R] ���[�^�[�ڍ�}
-		���@�\������, �܂����Ƃ̊Ԃ̗͂𒼐ڎ󂯂镔��.
-		���̊��ɂ��܂�傫���ł��Ȃ��̂ōł���x�̍�������.
+\subsection*{[R] ローター詳細}
+		動機構が多く, また魚との間の力を直接受ける部位.
+		その割にあまり大きくできないので最も難度の高い部位.
     \begin{itemize}
-      \item \textbf{[RB] ���[�^�[�{�f�B}
-		3�o���̔őO��ϑw�\��.
+      \item \textbf{[RB] ローターボディ}
+\includegraphics[scale=0.5]{fig/RB.png}
+		3㎜厚の板で前後積層構造.
       \begin{itemize}
-        \item \textbf{[RB-b]} b�i�s�����b�N�z�C�[���{�f�B����(�s���z�C�[�����x�͋ɂ߂ďd�v), ���C���V���t�g��~(���̉~���x�͋ɂ߂ďd�v) �j
-        \item \textbf{[RB-t0]} t0�i�s�����b�N�z�C�[���g�b�v����, ���C���V���t�g��~�j
-        \item \textbf{[RB-t1]} t1�i�X�g�b�p�[�A�A�[����, ���C���V���t�g��~�j
-        \item \textbf{[RB-t2]} t2�i�X�g�b�p�[�ƃA�[�����̕ێ�, ���C���V���t�g��~�A���C���V���t�g�ێ����̎󂯁j
+        \item \textbf{[RB-b]} ピンラックホイールボディ側受け(ピンホイール精度は極めて重要), メインシャフト大円(この円精度は極めて重要)
+        \item \textbf{[RB-t0]} ピンラックホイールトップ側受け, メインシャフト大円
+        \item \textbf{[RB-t1]} ストッパー、アーム軸, メインシャフト大円
+        \item \textbf{[RB-t2]} ストッパーとアーム軸の保持, メインシャフト大円、メインシャフト保持部の受け
+        \item \textbf{[RB-t3]} メインシャフト大円、メインシャフト保持部の受け
       \end{itemize}
-      \item \textbf{[RA]�A�[��}
-	���Ƃ̊Ԃ̗͂����߂Ɏ󂯂镔��, ���̏�����ʂŏ�����.
-	���̃X���[�Y���͎g�p���ɑ傫���e������.
-	�g�p����, �X���[�Y�Ȋ����Ƃ����������ƐڐG���̖��C����̕ی�̂��߂Ƀ��C�����[���[(���ǂ�)�͗~����.
-	�傫�ȗ͂��󂯂��Ƃ��ɓ������ړI�Ȃ̂Ń��[���[���̂̃X���[�Y���͂قƂ�ǂȂ��Ă����ɗ���.
-      \item \textbf{[RS]�X�g�b�p�[}
-	����莞�ɃA�[���̉����~�߂镔��. 
-	�g�p���ɑ傫���e������.
-	�S�ؐ��ɂ�����������̃X�g�b�p�[�̃o�l�͌������킹�Œ|�����������ɍ��ȏ�̂��Ƃ������Ȃ�
+      \item \textbf{[RA]アーム}
+\includegraphics[scale=0.5]{fig/RA.png}
+
+	魚との間の力を初めに受ける部位, その上可動部位で小さい.
+	可動のスムーズさは使用感に大きく影響する.
+	使用感上, スムーズな巻取りというよりも糸と接触部の摩擦からの保護のためにラインローラー(もどき)は欲しい.
+	大きな力を受けたときに逃がす目的なのでローラー自体のスムーズさはほとんどなくても役に立つ.
+	細部構造は設計図に反映しきってない(あまり他と干渉しないので後で作りこめる.そう木製ならね)
+      \item \textbf{[RS]ストッパー}
+	巻取り時にアームの可動を止める部位. 
+	使用感に大きく影響する.
+	全木製にこだわった時のストッパーのバネは現物合わせで竹をいい感じに削る以上のことが言えない
     \end{itemize}
 
-\subsection*{[O] �I�V���[�V�����@�\�ڍ�}
+\subsection*{[H] ハンドル系}
     \begin{itemize}
-      \item \textbf{[OC] �J������}
-	���^���͗v������邪, ���Ƃ̗͂͒��ډ����Ȃ����, �O��̃J���̌`�󐸓x������قǏd�v�ł͂Ȃ�.
-	(���ۖ��n�[�g�J���łȂ��P���ȉ~��J���ŃI�V���[�V�����𐳌��g�ɂ��Ă��g���Ȃ��͂Ȃ�)
-      \begin{itemize}
-        \item \textbf{[OC-G]} OC-G (����)
-        \item \textbf{[OC-C]} OC-C (�n�[�g�J��)
-      \end{itemize}
-      \item \textbf{[OF]} �󂯎q�i�J������͂��󂯂ăI�V���[�V��������p�[�c, �I�V���[�V�����V���t�g���S���j
-      \item \textbf{[OS]} �I�V���[�V�����V���t�g�i�I�V���[�V�����^�����X�v�[���ɓ`�B����p�[�c, �󂯎q�ƃX�v�[���ɍS���j
+      \item \textbf{[GM]} メイン冠状歯車
+\includegraphics[scale=0.5]{fig/GM.png}
+（ローターに回転を伝える部位, 歯の位置精度は極めて重要, ハンドルに拘束）
+      \item \textbf{[GS]} サブ冠状歯車
+\includegraphics[scale=0.5]{fig/GS.png}
+（オシレーション機構に回転を伝える部位，ハンドルシャフトに拘束）
     \end{itemize}
 
-\subsection*{[S] �X�v�[���ڍ�}
-	�I�V���[�V�����̉^�������͋��Ƃ�����͂ƒ������Ă���̂ŋ@�\�ɒ��ڗ͂��������Ȃ�.
-	�܂�, �~�`��͎��̕��o�̃X���[�Y���ɂ�����邾���Ŋ����@�\�ɂ͂قډe�����Ȃ�(���Ȃ瑽�p�`�ł����܂���Ȃ�).
-	�Ƃ������R������͊��ƓK���ł������i.
+\subsection*{[O] オシレーション機構詳細}
+    \begin{itemize}
+      \item \textbf{[OC] カム歯車}
+\includegraphics[scale=0.5]{fig/OC.png}
+	小型化は要求されるが, 魚との力は直接加わらない上に, 前後のカムの形状精度もそれほど重要ではない.
+	(実際問題ハートカムでなく単純な円状カムでオシレーションを正弦波にしても使えなくはない)
+      \begin{itemize}
+        \item \textbf{[OC-G]} OC-G (歯車)
+        \item \textbf{[OC-C]} OC-C (ハートカム)
+      \end{itemize}
+      \item \textbf{[OF]} 受け子
+\includegraphics[scale=0.5]{fig/OF.png}
+（カムから力を受けてオシレーションするパーツ, オシレーションシャフトを拘束）
+      \item \textbf{[OS]} オシレーションシャフト（オシレーション運動をスプールに伝達するパーツ, 受け子とスプールに拘束）
+    \end{itemize}
+
+\subsection*{[S] スプール詳細}
+\includegraphics[scale=0.5]{fig/S.png}
+
+	オシレーションの運動方向は魚とかかる力と直交しているので機構に直接力がかかららない.
+	また, 円形状は糸の放出のスムーズさにかかわるだけで巻取り機構にはほぼ影響しない(何なら多角形でもあまり問題ない).
+	という理由から実は割と適当でいい部品.
 
 
-\section{�@�B�@�\�݌v}
+\section{機械機構設計}
 
-��̂Ɍ��������Ē|�����w���Ƃ����`���̃s�����Ԃ���{�Ƃ���.
+基体に穴をあけて竹串を指すという形式のピン歯車を基本とする.
 
-�`�󐸓x��ʒu���x�⍄���ɂ��Ď���H�ؐ��i�ł���Ƃ������������钆��, 
-���߂�����H�͐��m�Ȍ��ʒu�����Ƃ����j�i�̍H��R�X�g�ŋ@�\����@�\���\���ł���. 
-
-
-����ōH�쐸�x�̌��E�ɂ�鎲�u����f�ނ̍����ɂ�邵�Ȃ�,
-����H�̂̎����̏��Ȃ�����P���Ȓ��a��Ǝ�����ȏ�ɋ쓮��쓮���l���������Ԃ��K�v�ƂȂ�.
+形状精度や位置精度や剛性について手加工木製品であるという制限がある中で, 
+求められる加工は正確な穴位置だけという破格の工作コストで機能する機構を構成できる. 
 
 
-�����̋@�B�@�\�ɔ�r�ɂȂ�Ȃ����炢�̃K�^�c�L���o�邪, 
-����ł��H��R�X�g�ɑ΂���R�X�p�Ƃ����_�ł͒��������̂�����.
+一方で工作精度の限界による軸ブレや素材の剛性によるしなり,
+手加工故の歯数の少なさから単純な直径比と歯数比以上に駆動被駆動を考慮した歯車が必要となる.
+
+
+既成の機械機構に比較にならないぐらいのガタツキが出るが, 
+それでも工作コストに対するコスパという点では著しいものがある.
 
 
 \newcounter{GMnum}
@@ -161,55 +192,55 @@
 \setcounter{OCGSy}{12}
 
 
-\subsection*{�����n}
-�n���h����]���璼�����鎲���[�^�[��].
-�ł��͂�������@�\.
-����.
+\subsection*{巻取り系}
+ハンドル回転から直交する軸ローター回転.
+最も力がかかる機構.
+加速.
 
 
 
 \begin{tabular}{c||c|c}
-& [GM]�쓮 & [RB]��쓮 \\ \hline
-�`��& ����s������ & �s�����b�N�z�C�[�� \\
-����a & \arabic{GMr} mm & \arabic{RBr} mm \\
-���� & \arabic{GMnum} & \arabic{RBnum} \\
-���Ԓ�������&
+& [GM]駆動 & [RB]被駆動 \\ \hline
+形状& 冠状ピン歯車 & ピンラックホイール \\
+基準半径 & \arabic{GMr} mm & \arabic{RBr} mm \\
+歯数 & \arabic{GMnum} & \arabic{RBnum} \\
+歯間直線距離&
 	$\fpeval{2*round( sind( 180/\value{GMnum} ) *\value{GMr}, 1)}$ &
 	$\fpeval{2*round( sind( 180/\value{RBnum} ) *\value{RBr}, 1)}$
 \end{tabular}
 
-���Ԓ��������ɂ���
+歯間直線距離について
 \begin{eqnarray*}
-\text{�쓮�Ԃ̎��Ԓ�������} &\ge& \text{��쓮�Ԃ̎��Ԓ�������}\\
-\text{�s�����a}\times 2 &\le& \text{���Ԓ�������}
+\text{駆動車の歯間直線距離} &\ge& \text{被駆動車の歯間直線距離}\\
+\text{ピン直径}\times 2 &\le& \text{歯間直線距離}
 \end{eqnarray*}
-�𖞂����Ȃ���΃��b�N����.
-����ŐڐG�������Ɉڂ�^�C�~���O�łقڏ㎮������]����.
+を満たさなければロックする.
+一方で接触歯が次に移るタイミングでほぼ上式差分空転する.
 
-\subsection*{�I�V���[�V�����n}
-�}��$\fpeval{round(\value{GMnum}*\value{OCnum}/(\value{RBnum}*\value{GSnum}), 1)}$�����Ɉ�������I�V���[�g����
+\subsection*{オシレーション系}
+凡そ$\fpeval{round(\value{GMnum}*\value{OCnum}/(\value{RBnum}*\value{GSnum}), 1)}$巻きに一周期分オシレートする
 
-\subsubsection*{�I�V���[�V���������a}
-�n���h����]���畽�s���J�����ԉ�].
-����.
+\subsubsection*{オシレーション減速径}
+ハンドル回転から平行軸カム歯車回転.
+減速.
 
 \begin{tabular}{c||c|c}
-& [GS]�쓮 & [OC]��쓮 \\ \hline
-�`��& ����s������ & ���ˏ�s������ \\
-����a & \arabic{GSr} mm & - (���� $\sqrt{\arabic{OCGSx}^2+\arabic{OCGSy}^2} \doteqdot \fpeval{round(sqrt(\value{OCGSx}*\value{OCGSx}+\value{OCGSy}*\value{OCGSy}), 2)}$ mm ) \\
-���� & \arabic{GSnum} & \arabic{OCnum} \\
-���Ԓ�������&
+& [GS]駆動 & [OC]被駆動 \\ \hline
+形状& 冠状ピン歯車 & 放射状ピン歯車 \\
+基準半径 & \arabic{GSr} mm & - (軸間 $\sqrt{\arabic{OCGSx}^2+\arabic{OCGSy}^2} \doteqdot \fpeval{round(sqrt(\value{OCGSx}*\value{OCGSx}+\value{OCGSy}*\value{OCGSy}), 2)}$ mm ) \\
+歯数 & \arabic{GSnum} & \arabic{OCnum} \\
+歯間直線距離&
 	$\fpeval{2*round( sind( 180/\value{GSnum} ) *\value{GSr}, 1)}$ &
 	$\fpeval{2*round( sind( 180/\value{OCnum} ) *(sqrt(\value{OCGSx}*\value{OCGSx}+\value{OCGSy}*\value{OCGSy})-\value{GSr}), 1)}$
 \end{tabular}
 
 
-\subsubsection*{�I�V���[�V�����n}
+\subsubsection*{オシレーション系}
 
 \begin{tabular}{c||c|c}
-& [OC]�쓮 & [OF]��쓮 \\ \hline
-�`��& �O�p�g������n�[�g�J�� & ���[���� \\
-����a & 6 mm --- 18 mm &   \\
+& [OC]駆動 & [OF]被駆動 \\ \hline
+形状& 三角波一周期ハートカム & 両端押え \\
+基準半径 & 6 mm --- 18 mm &   \\
 \end{tabular}
 
 

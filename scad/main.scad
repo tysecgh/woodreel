@@ -1201,11 +1201,14 @@ MSt1_X_ALL = [MSt1_X_name,
 	each MS_X_holes
 ];
 
-MS_X_s0 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_dh+RB_V_th+MS_N_th);
+MS_N_hl = MS_N_dh+RB_V_th+boardAw+MS_N_th;
+MS_N_hs = MS_N_dh+RB_V_th+boardAw;
+
+MS_X_s0 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_hl);
 
 MSs0_X_name = "PART_MS_s0";
 module PART_MS_s0(){
-	cylinder(r=3,h=MS_N_dh+RB_V_th+MS_N_th,$fn=24);
+	cylinder(r=3,h=MS_N_hl,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1215,11 +1218,11 @@ module PART_MS_s0(){
 MSs0_X_ALL = [MSs0_X_name,MS_X_s0];
 
 
-MS_X_s2 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_dh+RB_V_th);
+MS_X_s2 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_hs);
 
 MSs2_X_name = "PART_MS_s2";
 module PART_MS_s2(){
-	cylinder(r=3,h=MS_N_dh+RB_V_th,$fn=24);
+	cylinder(r=3,h=MS_N_hs,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1229,7 +1232,7 @@ MSs2_X_ALL = [MSs2_X_name,MS_X_s2];
 
 MSs4_X_name = "PART_MS_s4";
 module PART_MS_s4(){
-	cylinder(r=3,h=MS_N_dh+RB_V_th+MS_N_th,$fn=24);
+	cylinder(r=3,h=MS_N_hl,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1239,7 +1242,7 @@ MSs4_X_ALL = [MSs4_X_name,MS_X_s0];
 
 MSs8_X_name = "PART_MS_s8";
 module PART_MS_s8(){
-	cylinder(r=3,h=MS_N_dh+RB_V_th+MS_N_th,$fn=24);
+	cylinder(r=3,h=MS_N_hl,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1249,7 +1252,7 @@ MSs8_X_ALL = [MSs8_X_name,MS_X_s0];
 
 MSs10_X_name = "PART_MS_s10";
 module PART_MS_s10(){
-	cylinder(r=3,h=MS_N_dh+RB_V_th,$fn=24);
+	cylinder(r=3,h=MS_N_hs,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
