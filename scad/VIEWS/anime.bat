@@ -1,25 +1,51 @@
-ï»¿@echo off
+@echo off
 setlocal enabledelayedexpansion
 
-:: --- è¨­å®šé …ç›® ---
+:: --- Ý’è€–Ú ---
 set OPENSCAD_PATH="C:\Program Files (x86)\OpenSCAD\openscad"
 set SCAD_FILE=SKELETON.scad
 set OUTPUT_DIR=frames
-set TOTAL_STEPS=150
+set TOTAL_STEPS=250
 set CAMERA=30,-10,0,45,0,160,500
 :: ----------------
 
 if not exist %OUTPUT_DIR% mkdir %OUTPUT_DIR%
 
-echo --- é€£ç•ªç”»åƒã®ãƒ¬ãƒ³ãƒ€ãƒªãƒ³ã‚°ã‚’é–‹å§‹ã—ã¾ã™ ---
+echo --- ƒTƒ“ƒvƒ‹‰æ‘œ‚Ì¶¬‚ÆŠm”F ---
+
+:: yƒXƒeƒbƒv0‚ÌƒTƒ“ƒvƒ‹‚ð¶¬z
+set /a "i=0"
+set /a "calc_val=i * 1"
+
+set "sample_filename=frame_000%i%.png"
+
+
+echo ƒTƒ“ƒvƒ‹‰æ‘œ‚ð¶¬’†: %sample_filename%
+%OPENSCAD_PATH% -o !sample_filename! --camera=%CAMERA% -D "$time=!calc_val!" %SCAD_FILE%
+
+echo.
+echo --------------------------------------------------
+echo ¶¬‚³‚ê‚½ƒTƒ“ƒvƒ‹‰æ‘œ (%sample_filename%) ‚ðŠm”F‚µ‚Ä‚­‚¾‚³‚¢B
+echo --------------------------------------------------
+set /p "choice=–{ŽÀsi‘S %TOTAL_STEPS% –‡‚Ì˜A”Ôo—Íj‚ðŠJŽn‚µ‚Ü‚·‚©H [Y / N]: "
+
+:: “ü—Í”»’èiY ‚Ü‚½‚Í y ˆÈŠO‚È‚ç’†’fj
+if /i not "%choice%"=="Y" (
+    echo.
+    echo ˆ—‚ð’†’f‚µ‚Ü‚µ‚½B
+    goto :end
+)
+
+echo.
+echo --- ˜A”Ô‰æ‘œ‚ÌƒŒƒ“ƒ_ƒŠƒ“ƒO‚ðŠJŽn‚µ‚Ü‚· ---
 
 for /L %%i in (0, 1, %TOTAL_STEPS%) do (
     set /a "idx=%%i+1"
     
-    :: ã€1ã€‘ãƒãƒƒãƒå´ã§å…ˆã«è¨ˆç®—ã‚’è¡Œã†ï¼ˆä¾‹: 0*10, 1*10, 2*10 ...ï¼‰
+    :: y1zƒoƒbƒ`‘¤‚Åæ‚ÉŒvŽZ‚ðs‚¤i—á: 0*10, 1*10, 2*10 ...j
     set /a "calc_val=%%i * 1"
     
-    :: 4æ¡ã®ã‚¼ãƒ­åŸ‹ã‚ãƒ•ã‚¡ã‚¤ãƒ«åã‚’ä½œæˆ
+    :: 4Œ…‚Ìƒ[ƒ–„‚ßƒtƒ@ƒCƒ‹–¼‚ðì¬
     if %%i LSS 10 (
         set "filename=%OUTPUT_DIR%\frame_000%%i.png"
     ) else if %%i LSS 100 (
@@ -30,9 +56,9 @@ for /L %%i in (0, 1, %TOTAL_STEPS%) do (
         set "filename=%OUTPUT_DIR%\frame_%%i.png"
     )
     
-    :: ã€2ã€‘è¨ˆç®—æ¸ˆã¿ã®å€¤ï¼ˆ!calc_val!ï¼‰ã‚’æ–‡å­—åˆ—ã«åŸ‹ã‚è¾¼ã‚“ã§OpenSCADã«æ¸¡ã™
+    :: y2zŒvŽZÏ‚Ý‚Ì’li!calc_val!j‚ð•¶Žš—ñ‚É–„‚ßž‚ñ‚ÅOpenSCAD‚É“n‚·
    %OPENSCAD_PATH% -o !filename! --camera=%CAMERA% -D "$time=!calc_val!" %SCAD_FILE%
 )
 
-echo --- å®Œäº†ã—ã¾ã—ãŸ ---
+echo --- Š®—¹‚µ‚Ü‚µ‚½ ---
 pause
