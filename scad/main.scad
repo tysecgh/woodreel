@@ -780,7 +780,7 @@ module PART_RB_t1(){
 
 RBt1_X_ALL = [
 	RBt1_X_name,
-	str("外接長方形:",R_V_axm+R_V_axs,"X",RB_P_yl+RB_P_yr),
+	str("外接長方形:",R_V_axm+RB_P_xr,"X",RB_P_yl+RB_P_yr),
 	str("RA軸用スリット: y",join([
 		RB_P_yl+R_V_as-RA_N_sr,
 		RA_N_sr*2,
@@ -1208,7 +1208,7 @@ MS_X_s0 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_hl);
 
 MSs0_X_name = "PART_MS_s0";
 module PART_MS_s0(){
-	cylinder(r=3,h=MS_N_hl,$fn=24);
+	cylinder(r=MS_K_vr,h=MS_N_hl,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1222,7 +1222,7 @@ MS_X_s2 = str("円柱 r:",MS_K_vr," 長さ:",MS_N_hs);
 
 MSs2_X_name = "PART_MS_s2";
 module PART_MS_s2(){
-	cylinder(r=3,h=MS_N_hs,$fn=24);
+	cylinder(r=MS_K_vr,h=MS_N_hs,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1232,7 +1232,7 @@ MSs2_X_ALL = [MSs2_X_name,MS_X_s2];
 
 MSs4_X_name = "PART_MS_s4";
 module PART_MS_s4(){
-	cylinder(r=3,h=MS_N_hl,$fn=24);
+	cylinder(r=MS_K_vr,h=MS_N_hl,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1242,7 +1242,7 @@ MSs4_X_ALL = [MSs4_X_name,MS_X_s0];
 
 MSs8_X_name = "PART_MS_s8";
 module PART_MS_s8(){
-	cylinder(r=3,h=MS_N_hl,$fn=24);
+	cylinder(r=MS_K_vr,h=MS_N_hl,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1252,7 +1252,7 @@ MSs8_X_ALL = [MSs8_X_name,MS_X_s0];
 
 MSs10_X_name = "PART_MS_s10";
 module PART_MS_s10(){
-	cylinder(r=3,h=MS_N_hs,$fn=24);
+	cylinder(r=MS_K_vr,h=MS_N_hs,$fn=24);
 
 	namep = [0, MS_K_vr, 0];
     rotate([0,-90,0])
@@ -1352,9 +1352,17 @@ module UNIT_S(){
 //////////////////////
 // B
 
+Bl_P_pll = [-B_P_xl,-B_P_yl];
+Bl_P_pw = [B_N_xw,B_N_yw];
+
+Bl2_P_pw = [B_N_xw,Br_N_yw];
+
+Br_P_pll = [-Br_P_xl,-B_P_yl];
+Br_P_pw = [Br_N_xw,Br_N_yw];
+
 module PART_B_boardL(h){
-	translate([-B_P_xl,-B_P_yl,0])
-	chamfBoard([B_N_xw,B_N_yw],
+	translate([each Bl_P_pll,0])
+	chamfBoard(Bl_P_pw,
 		B_N_chamfll,
 		B_N_chamflr,
 		B_N_chamfrl,
@@ -1362,11 +1370,12 @@ module PART_B_boardL(h){
 		,h);
 }
 
+
 module PART_B_boardL2(h){
 	difference(){
 		union(){
-			translate([-B_P_xl,-B_P_yl,0])
-			board([B_N_xw,B_N_yw],h);
+			translate([each Bl_P_pll,0])
+			board(Bl_P_pw,h);
 			translate([-B_P_xl3,B_P_yr,0])
 			board([B_P_xl3+B_P_xr,Br_P_yr-B_P_yr],h);
 		}
@@ -1391,8 +1400,8 @@ module PART_B_boardL2(h){
 
 module PART_B_boardR(h){
 
-	translate([-Br_P_xl,-B_P_yl,0])
-	chamfBoard([Br_N_xw,Br_N_yw],
+	translate([each Br_P_pll,0])
+	chamfBoard(Br_P_pw,
 		Br_N_chamfll,
 		Br_N_chamflr,
 		Br_N_chamfrl,
@@ -1403,8 +1412,8 @@ module PART_B_boardR(h){
 }
 
 module PART_B_boardC(h){
-	translate([-B_P_xl,-B_P_yl,0])
-	chamfBoard([B_N_xw,B_N_yw],
+	translate([each Bl_P_pll,0])
+	chamfBoard(Bl_P_pw,
 		B_N_chamfll,
 		B_N_chamflr,
 		B_N_chamfrl,
@@ -1421,30 +1430,32 @@ module PART_B_holes(h){
 	translate(B_P_ocp) hole(OCgs_V_r,h);
 	// メインシャフト固定ピン用穴
 	translate(B_P_pinp) hole(3,h);
-
 }
 
-B_X_outrct = str("外接長方形:",B_N_xw,"X",B_N_yw);
+function B_X_outrct(pw) = str("外接長方形:",pw[0],"X",pw[1]);
 
+function holeX(pll,p,pw) = str(
+    " x:", -pll[0]+p[0] ,"+", pw[0]-(-pll[0]+p[0]),
+	" y:", -pll[1]+p[1] ,"+", pw[1]-(-pll[1]+p[1])
+);
 
-Bc_X_hhp = str(
+function B_X_hhp(pll,pw) = str(
 	"ハンドル軸穴 r:",HS_V_r,
-	xytxt(B_P_xl,B_P_yl)
+	holeX(pll,[0,0],pw)
+);
+function B_X_ochp(pll,pw) = str(
+	"オシレーションクランク軸穴 r:",OCgs_V_r,
+	holeX(pll,B_P_ocp,pw)
 );
 
-B_X_ochpxy = xytxt(
-	B_P_xl+B_P_ocp[0],B_P_yl+B_P_ocp[1]
-);
-B_X_ochp = str(
-	"オシレーションクランク軸穴 r:",OCgs_V_r,B_X_ochpxy
+function B_X_msphp(pll,pw) = str(
+	"メインシャフト固定ピン穴 r:",3,
+	holeX(pll,B_P_pinp,pw)
 );
 
-B_X_msphp = str(
-	"メインシャフト固定ピン穴 r:",3,xytxt(
-		B_P_xl+B_P_pinp[0],
-		B_P_yl+B_P_pinp[1]
-	)
-);
+
+
+
 
 Bc_X_name = "PART_B_c";
 module PART_B_c(){
@@ -1471,10 +1482,10 @@ module PART_B_c(){
 }
 Bc_X_ALL = [
 	Bc_X_name,
-	B_X_outrct,
-	Bc_X_hhp,
-	B_X_ochp,
-	B_X_msphp,
+	B_X_outrct(Bl_P_pw),
+	B_X_hhp(Bl_P_pll,Bl_P_pw),
+	B_X_ochp(Bl_P_pll,Bl_P_pw),
+	B_X_msphp(Bl_P_pll,Bl_P_pw),
 	str(
 		"メインシャフト0時スリット: 深さ:",MS_N_dh,
 		" y:",
@@ -1545,9 +1556,9 @@ module PART_B_l1(){
 }
 Bl1_X_ALL = [
 	Bl1_X_name,
-	B_X_outrct,
-	Bc_X_hhp,
-	B_X_msphp,
+	B_X_outrct(Bl_P_pw),
+	B_X_hhp(Bl_P_pll,Bl_P_pw),
+	B_X_msphp(Bl_P_pll,Bl_P_pw),
 	str("オシレーションカム受け子スペース:",
 		join([
 			B_P_xl + B_P_ocp[0]-(OF_N_xl+OCc_K_w),
@@ -1557,7 +1568,6 @@ Bl1_X_ALL = [
 	)
 ];
 
-B_X_outrct3 = str("外接長方形: x",B_N_xw," y",Br_N_yw);
 
 Bl2_X_name = "PART_B_l2";
 module PART_B_l2(){
@@ -1586,19 +1596,19 @@ module PART_B_l2(){
 
 Bl2_X_ALL = [
 	Bl2_X_name,
-	B_X_outrct3,
+	B_X_outrct(Bl2_P_pw),
 	str(
 		"左上欠け :",xytxt(
-			join([B_P_xl-Br_P_xl,Br_P_xl+B_P_xr]),
+			join([B_P_xl-B_P_xl3,B_P_xl3+B_P_xr]),
 			join([B_P_yl+B_P_yr,Br_P_yr-B_P_yr])
 		)
 	),
-	Bc_X_hhp,
+	B_X_hhp(Bl_P_pll,Bl2_P_pw),
 	str(
 		"オシレーションカムスペース r:",OCc_K_r+OCc_K_w/2+1,
-		B_X_ochpxy
+		holeX(Bl_P_pll,B_P_ocp,Bl2_P_pw)
 	),
-	B_X_msphp,
+	B_X_msphp(Bl_P_pll,Bl2_P_pw),
 	str(
 		"メインシャフト2時スリット: 深さ:",MS_N_dh,
 		" y:",
@@ -1640,16 +1650,16 @@ module PART_B_l3(){
 }
 Bl3_X_ALL =[
 	Bl3_X_name,
-	B_X_outrct,
+	B_X_outrct(Bl_P_pw),
 	str(
 		"GS歯部分可動スペース r:",GS_K_r+2,
-		xytxt(Br_P_xl,B_P_yl)
+		holeX(Bl_P_pll,[0,0],Bl_P_pw)
 	),
 	str(
 		"オシレーションカム歯車スペース r:",B_V_ocgsr,
-		B_X_ochpxy
+		holeX(Bl_P_pll,B_P_ocp,Bl_P_pw)
 	),
-	B_X_msphp
+	B_X_msphp(Bl_P_pll,Bl_P_pw)
 ];
 
 Bl4_X_name = "PART_B_l4";
@@ -1669,13 +1679,13 @@ module PART_B_l4(){
 }
 Bl4_X_ALL = [
 	Bl4_X_name,
-	B_X_outrct,
+	B_X_outrct(Bl_P_pw),
 	str(
 		"GS歯車スペース r:",GS_N_or+1,
-		xytxt(Br_P_xl,B_P_yl)
+		holeX(Bl_P_pll,[0,0],Bl_P_pw)
 	),
-	B_X_ochp,
-	B_X_msphp
+	B_X_ochp(Bl_P_pll,Bl_P_pw),
+	B_X_msphp(Bl_P_pll,Bl_P_pw)
 ];
 
 Br1_X_name = "PART_B_r1";
@@ -1692,24 +1702,11 @@ module PART_B_r1(){
 }
 Br1_X_ALL = [
 	Br1_X_name,
-	B_X_outrct,
-	Bc_X_hhp,
-	B_X_ochp,
-	B_X_msphp
+	B_X_outrct(Bl_P_pw),
+	B_X_hhp(Bl_P_pll,Bl_P_pw),
+	B_X_ochp(Bl_P_pll,Bl_P_pw),
+	B_X_msphp(Bl_P_pll,Bl_P_pw)
 ];
-
-B_X_outrct2 = str("外接長方形:",Br_N_xw,"X",Br_N_yw);
-Bc_X_hhp2 = str(
-	"ハンドル軸穴 r:",HS_V_r,
-	xytxt(Br_P_xl,B_P_yl)
-);
-B_X_ochp2 = str(
-	"オシレーションクランク軸穴 r:",OCgs_V_r,xytxt(Br_P_xl+B_P_ocp[0],B_P_yl+B_P_ocp[1])
-);
-B_X_msphp2 = str(
-	"メインシャフト固定ピン穴 r:",3,
-	xytxt(Br_P_xl+B_P_pinp[0],B_P_yl+B_P_pinp[1])
-);
 
 Br2_X_name = "PART_B_r2";
 module PART_B_r2(){
@@ -1736,10 +1733,10 @@ module PART_B_r2(){
 }
 Br2_X_ALL = [
 	Br2_X_name,
-	B_X_outrct2,
-	Bc_X_hhp2,
-	B_X_ochp2,
-	B_X_msphp2,
+	B_X_outrct(Br_P_pw),
+	B_X_hhp(Br_P_pll,Br_P_pw),
+	B_X_ochp(Br_P_pll,Br_P_pw),
+	B_X_msphp(Br_P_pll,Br_P_pw),
 	str(
 		"メインシャフト10時スリット: 深さ:",MS_N_dh,
 		" y:",
@@ -1774,10 +1771,10 @@ module PART_B_r3(){
 }
 Br3_X_ALL = [
 	Br3_X_name,
-	B_X_outrct2,
-	Bc_X_hhp2,
-	B_X_ochp2,
-	B_X_msphp2
+	B_X_outrct(Br_P_pw),
+	B_X_hhp(Br_P_pll,Br_P_pw),
+	B_X_ochp(Br_P_pll,Br_P_pw),
+	B_X_msphp(Br_P_pll,Br_P_pw)
 ];
 
 module UNIT_B(){
@@ -2076,34 +2073,9 @@ module VIEW_TOTAL(t=0){
     VIEWX_ASSY_B();
 }
 
-//VIEW_TOTAL(0);
 /////////////////////////////////
 //// 呼び出し例（コメントアウト）
 /////////////////////////////////
-
-//PART_B_l1([100,0,0]);
-//PART_B_r2([100,0,0]);
-//ASSY_B();
-//VIEW_GMMSRS();
-
-//PART_RB_t1([40,0,0]);
-
-//projection()
-//PART_RB_t1();
-//ASSY_RB();
-//ASSY_R();
-//PART_B_abstract(boardAw);
-//VIEW_MSRS();
 //VIEW_TOTAL(0);
-//VIEW_OCOF();
-//PART_S_b();
 
 
-
-
-
-
-//UNIT_B();
-//translate([0,0,boardAw+HS_V_wr]) rotate([180,0,0])ASSY_H();
-//PART_RA_C([50,0,0]);
-//ASSY_RB();
