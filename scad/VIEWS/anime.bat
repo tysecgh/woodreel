@@ -3,10 +3,10 @@ setlocal enabledelayedexpansion
 
 :: --- ê›íËçÄñ⁄ ---
 set OPENSCAD_PATH="C:\Program Files (x86)\OpenSCAD\openscad"
-set SCAD_FILE=SKELETON.scad
+set SCAD_FILE=RSwL.scad
 set OUTPUT_DIR=frames
-set TOTAL_STEPS=250
-set CAMERA=30,-10,0,45,0,160,500
+set TOTAL_STEPS=185
+set CAMERA=-20,-10,55,45,0,300,400
 :: ----------------
 
 if not exist %OUTPUT_DIR% mkdir %OUTPUT_DIR%
