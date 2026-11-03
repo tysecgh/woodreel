@@ -6,6 +6,12 @@
 //
 // 独自でSVG座標に変換（y値負にするだけだが）してるので生の座標で呼ばなければうまく機能しない
 // 
+
+// 半角(ASCII・半角カナ)は hw em、それ以外は 1em として数える
+function cw(c, hw = 0.55) = let(o = ord(c))
+    (o <= 0x7E || (o >= 0xFF61 && o <= 0xFF9F)) ? hw : 1;
+function ems(s, i = 0) = i >= len(s) ? 0 : cw(s[i]) + ems(s, i + 1);
+
 module svgtxt( txts, p ){
     fsize = 4;
     xr = 1;
