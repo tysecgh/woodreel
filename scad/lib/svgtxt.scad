@@ -8,19 +8,25 @@
 // 
 
 // 半角(ASCII・半角カナ)は hw em、それ以外は 1em として数える
-function cw(c, hw = 0.55) = let(o = ord(c))
-    (o <= 0x7E || (o >= 0xFF61 && o <= 0xFF9F)) ? hw : 1;
+function cw(c, hw = 0.55) = let(o = ord(c))(o <= 0x7E || (o >= 0xFF61 && o <= 0xFF9F)) ? hw : 1;
 function ems(s, i = 0) = i >= len(s) ? 0 : cw(s[i]) + ems(s, i + 1);
 
 module svgtxt( txts, p ){
     fsize = 4;
     xr = 1;
     yr = 1.2;
-    
+
+/*    
     w = max([
             len(str(txts[0]))*(fsize+1),
             max([for (t = txts) len(str(t))])*fsize,
     ])*xr+2;
+    */
+    w = max([
+            ems(str(txts[0]))*(fsize+1),
+            max([for (t = txts) ems(str(t))])*fsize,
+    ])*xr+2;
+            
     h = len(txts)*fsize*yr+2;
     lw = 0.1;
     translate([p[0],p[1]-h,0])

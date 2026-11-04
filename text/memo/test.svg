@@ -1,0 +1,43 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg"
+     width="480" height="360"	
+     viewBox="-19 -20 50 40">
+
+  <!-- 回転する円 -->
+  <circle cx="0" cy="0" r="9"
+          fill="none" stroke="black" stroke-width="0.3">
+    <animateTransform
+      attributeName="transform"
+      type="rotate"
+      from="0 6 0"
+      to="360 6 0"
+      dur="4s"
+      repeatCount="indefinite"/>
+  </circle>
+
+  <!-- 回転中心 -->
+  <circle cx="6" cy="0" r="3" fill="none" stroke="black" stroke-width="0.3"></circle>
+
+  <!-- 往復運動する長方形 -->
+  <rect y="-9" width="5" height="18"
+        fill="lightblue" stroke="blue" stroke-width="0.3">
+<animate
+  attributeName="x"
+  values="
+	9.00;9.07;9.29;9.65;10.15;10.76;11.47;12.28;13.15;14.06;15.00;15.94;16.85;17.72;18.53;19.24;19.85;20.35;20.71;20.93;21.00;20.93;20.71;20.35;19.85;19.24;18.53;17.72;16.85;15.94;15.00;14.06;13.15;12.28;11.47;10.76;10.15;9.65;9.29;9.07
+	"
+  dur="4s"
+  repeatCount="indefinite"/>  </rect>
+
+  <rect y="-9" width="5" height="18"
+        fill="lightblue" stroke="blue" stroke-width="0.3">
+<animate
+  attributeName="x"
+  values="
+	-15.00;-14.93;-14.71;-14.35;-13.85;-13.24;-12.53;-11.72;-10.85;-9.94;-9.00;-8.06;-7.15;-6.28;-5.47;-4.76;-4.15;-3.65;-3.29;-3.07;-3.00;-3.07;-3.29;-3.65;-4.15;-4.76;-5.47;-6.28;-7.15;-8.06;-9.00;-9.94;-10.85;-11.72;-12.53;-13.24;-13.85;-14.35;-14.71;-14.93
+	"
+  dur="4s"
+  repeatCount="indefinite"/>  </rect>
+
+
+
+</svg>

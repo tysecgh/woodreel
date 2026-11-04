@@ -400,8 +400,8 @@ module pin_disc(r,h,ph,pnum){
 }
 
 module heart_cam(r, R, h) {
-	min_r = r - pin_rad/2;
-	max_r = R - pin_rad/2;
+	min_r = r - pin_rad;
+	max_r = R - pin_rad;
 	steps = 24;
 	step_angle = 360 / steps;
 
@@ -532,7 +532,6 @@ OCc_X_ALL =[
 	str("カム半径:",OCc_K_r-OCc_K_w/2,"〜",OCc_K_r+OCc_K_w/2," 板厚:",boardAw),
 	str("ストローク:",OCc_K_w),
 	str("軸穴 r:",OCgs_V_r),
-    str("外形位置に無数のd3穴")
 ];
 
 module ASSY_OC(){

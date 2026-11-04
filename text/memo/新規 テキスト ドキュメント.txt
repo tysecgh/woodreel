@@ -1,0 +1,46 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg"
+     width="720" height="240"
+     viewBox="-15 -15 100 30">
+
+  <!-- 回転する円 -->
+  <circle cx="0" cy="0" r="9"
+          fill="none" stroke="black" stroke-width="0.3">
+    <animateTransform
+      attributeName="transform"
+      type="rotate"
+      from="0 6 0"
+      to="360 6 0"
+      dur="4s"
+      repeatCount="indefinite"/>
+  </circle>
+
+  <circle cx="0" cy="0" r="9" fill="none" stroke="black" stroke-width="0.3"></circle>
+  <!-- 回転中心 -->
+  <circle cx="6" cy="0" r="0.3" fill="red"/>
+
+  <!-- 往復運動する長方形 -->
+  <rect y="-9" width="5" height="18"
+        fill="lightblue" stroke="blue" stroke-width="0.3">
+<animate
+  attributeName="x"
+  values="9;15;21;15;9"
+  keyTimes="0;0.25;0.5;0.75;1"
+  calcMode="spline"
+  keySplines="
+    0.5 0 1 0.5;
+    0 0.5 0.5 1;
+    0.5 0 1 0.5;
+    0 0.5 0.5 1"
+  dur="4s"
+  repeatCount="indefinite"/>    
+  </rect>
+
+
+  <!-- x=15 に固定された長方形 -->
+  <rect x="15" y="-3" width="5" height="6"
+        fill="none" stroke="green" stroke-width="0.3"/>
+
+  <rect x="6" y="-3" width="5" height="6"
+        fill="none" stroke="green" stroke-width="0.3"/>
+
+</svg>

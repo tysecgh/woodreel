@@ -9,7 +9,7 @@ module switch_proj() {
     else children();
 }
 
-// A4外枠 & 余白マーカー
+//A4外枠 & 余白マーカー
 difference(){ 
     w = 210; h = 297; 
     d = $prjflg ? 1 : 20 ;
