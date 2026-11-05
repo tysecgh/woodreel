@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SVG → PDF マージ（ベクタ・テキスト保持）</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--bd:#c8c8c8;--acc:#2a6df4;--zone:#f4f6fb}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1b1d;--fg:#eee;--mut:#9a9a9a;--bd:#444;--acc:#6c9cff;--zone:#242428}}
+body{font:15px/1.6 system-ui,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;background:var(--bg);color:var(--fg);max-width:780px;margin:0 auto;padding:20px}
+h1{font-size:1.3rem;margin:0 0 4px}
+.mut{color:var(--mut);font-size:.9rem}
+#drop{margin:14px 0;padding:34px 12px;border:2px dashed var(--bd);border-radius:10px;background:var(--zone);text-align:center;cursor:pointer}
+#drop.over{border-color:var(--acc)}
+ul{list-style:none;margin:0 0 10px;padding:0}
+li{display:flex;gap:6px;align-items:center;padding:3px 0;border-bottom:1px solid var(--bd)}
+li span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+button,select{font:inherit;padding:3px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--fg);cursor:pointer}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff;padding:8px 22px;font-weight:600;margin-top:10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+pre{white-space:pre-wrap;font-size:.85rem;color:var(--mut)}
+</style>
+</head>
+<body>
+<h1>SVG → PDF マージ</h1>
+<p class="mut">複数のSVGをドロップすると、1SVG＝1ページのPDFを作ります。図形はベクタ、文字はテキストのまま（日本語フォントを埋め込み）。すべてブラウザ内で処理し、外部送信はしません。</p>
+
+<div id="drop" tabindex="0">ここにSVGをドラッグ＆ドロップ<br>
+<small class="mut">クリックで選択 ／ フォントを指定したい場合は .ttf / .ttc もここへ（未指定なら自動で探します）</small></div>
+<input type="file" id="picker" accept=".svg,image/svg+xml,.ttf,.ttc,.otf" multiple hidden>
+
+<ul id="list"></ul>
+<div class="row">
+  <button id="sort">名前順に並べ替え</button>
+  <button id="clear">全消去</button>
+  <label>ページサイズ
+    <select id="size">
+      <option value="native">各SVGの寸法のまま</option>
+      <option value="a4">A4に収める（余白10mm・向き自動）</option>
+    </select>
+  </label>
+  <span id="fontstat" class="mut">フォント: 自動</span>
+</div>
+<button id="go" class="primary">PDFを作成</button>
+<pre id="log"></pre>
+
+<script>
+'use strict';
+/* ================= 純ロジック（DOM非依存） ================= */
+const enc = new TextEncoder();
+const n = v => { const r = Math.round(v * 1e5) / 1e5; return String(r === 0 ? 0 : r); };
+const num = (v, d) => { const x = parseFloat(v); return isNaN(x) ? d : x; };
+const mul = (A, B) => ({
+  a: A.a * B.a + A.c * B.b, b: A.b * B.a + A.d * B.b,
+  c: A.a * B.c + A.c * B.d, d: A.b * B.c + A.d * B.d,
+  e: A.a * B.e + A.c * B.f + A.e, f: A.b * B.e + A.d * B.f + A.f
+});
+
+function unitToPt(v) {
+  if (v == null) return null;
+  const m = /^\s*([-+]?[\d.]+(?:e[-+]?\d+)?)\s*(px|pt|pc|mm|cm|in|q)?\s*$/i.exec(v);
+  if (!m) return null;
+  const k = { px: 0.75, pt: 1, pc: 12, mm: 72 / 25.4, cm: 72 / 2.54, in: 72, q: 72 / 101.6 }[(m[2] || 'px').toLowerCase()];
+  const r = parseFloat(m[1]) * k;
+  return r > 0 ? r : null;
+}
+
+/* ---- パスデータ → [['M',x,y],['L',..],['C',..],['Q',..],['Z']] ---- */
+function arcToC(x1, y1, rx, ry, phiDeg, fa, fs, x2, y2, out) {
+  if (x1 === x2 && y1 === y2) return;
+  if (rx === 0 || ry === 0) { out.push(['L', x2, y2]); return; }
+  rx = Math.abs(rx); ry = Math.abs(ry);
+  const phi = phiDeg * Math.PI / 180, cp = Math.cos(phi), sp = Math.sin(phi);
+  const dx = (x1 - x2) / 2, dy = (y1 - y2) / 2;
+  const x1p = cp * dx + sp * dy, y1p = -sp * dx + cp * dy;
+  const lam = x1p * x1p / (rx * rx) + y1p * y1p / (ry * ry);
+  if (lam > 1) { const s = Math.sqrt(lam); rx *= s; ry *= s; }
+  const rx2 = rx * rx, ry2 = ry * ry;
+  let nu = rx2 * ry2 - rx2 * y1p * y1p - ry2 * x1p * x1p; if (nu < 0) nu = 0;
+  let co = Math.sqrt(nu / (rx2 * y1p * y1p + ry2 * x1p * x1p));
+  if (fa === fs) co = -co;
+  const cxp = co * rx * y1p / ry, cyp = -co * ry * x1p / rx;
+  const cx = cp * cxp - sp * cyp + (x1 + x2) / 2, cy = sp * cxp + cp * cyp + (y1 + y2) / 2;
+  const ux = (x1p - cxp) / rx, uy = (y1p - cyp) / ry, vx = (-x1p - cxp) / rx, vy = (-y1p - cyp) / ry;
+  const th1 = Math.atan2(uy, ux);
+  let dth = Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+  if (!fs && dth > 0) dth -= 2 * Math.PI; else if (fs && dth < 0) dth += 2 * Math.PI;
+  const ns = Math.max(1, Math.ceil(Math.abs(dth) / (Math.PI / 2) - 1e-9));
+  const dl = dth / ns, t = 4 / 3 * Math.tan(dl / 4);
+  const map = (px, py) => [cp * rx * px - sp * ry * py + cx, sp * rx * px + cp * ry * py + cy];
+  let a = th1;
+  for (let k = 0; k < ns; k++) {
+    const a2 = a + dl, c1 = Math.cos(a), s1 = Math.sin(a), c2 = Math.cos(a2), s2 = Math.sin(a2);
+    const q1 = map(c1 - t * s1, s1 + t * c1), q2 = map(c2 + t * s2, s2 - t * c2);
+    const q3 = k === ns - 1 ? [x2, y2] : map(c2, s2);
+    out.push(['C', ...q1, ...q2, ...q3]);
+    a = a2;
+  }
+}
+
+function parsePath(d) {
+  const out = [], len = d.length;
+  const numRe = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/y;
+  let i = 0;
+  const ws = () => { while (i < len && /[\s,]/.test(d[i])) i++; };
+  const rn = () => { ws(); numRe.lastIndex = i; const m = numRe.exec(d); if (!m) throw new Error('パスデータが不正'); i = numRe.lastIndex; return parseFloat(m[0]); };
+  const rf = () => { ws(); const c = d[i]; if (c !== '0' && c !== '1') throw new Error('arcフラグが不正'); i++; return +c; };
+  let cx = 0, cy = 0, sx = 0, sy = 0, cmd = '', lk = '', lx = 0, ly = 0;
+  for (;;) {
+    ws(); if (i >= len) break;
+    if (/[A-Za-z]/.test(d[i])) {
+      cmd = d[i++];
+      if (cmd === 'Z' || cmd === 'z') { out.push(['Z']); cx = sx; cy = sy; lk = ''; cmd = ''; continue; }
+    } else if (!cmd) throw new Error('パスデータが不正');
+    const rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
+    const ox = rel ? cx : 0, oy = rel ? cy : 0;
+    if (C === 'M') { const x = rn() + ox, y = rn() + oy; out.push(['M', x, y]); cx = sx = x; cy = sy = y; cmd = rel ? 'l' : 'L'; lk = ''; }
+    else if (C === 'L') { const x = rn() + ox, y = rn() + oy; out.push(['L', x, y]); cx = x; cy = y; lk = ''; }
+    else if (C === 'H') { const x = rn() + ox; out.push(['L', x, cy]); cx = x; lk = ''; }
+    else if (C === 'V') { const y = rn() + oy; out.push(['L', cx, y]); cy = y; lk = ''; }
+    else if (C === 'C') { const a = rn() + ox, b = rn() + oy, c = rn() + ox, e = rn() + oy, x = rn() + ox, y = rn() + oy; out.push(['C', a, b, c, e, x, y]); lx = c; ly = e; cx = x; cy = y; lk = 'C'; }
+    else if (C === 'S') { const c = rn() + ox, e = rn() + oy, x = rn() + ox, y = rn() + oy; const a = lk === 'C' ? 2 * cx - lx : cx, b = lk === 'C' ? 2 * cy - ly : cy; out.push(['C', a, b, c, e, x, y]); lx = c; ly = e; cx = x; cy = y; lk = 'C'; }
+    else if (C === 'Q') { const a = rn() + ox, b = rn() + oy, x = rn() + ox, y = rn() + oy; out.push(['Q', a, b, x, y]); lx = a; ly = b; cx = x; cy = y; lk = 'Q'; }
+    else if (C === 'T') { const x = rn() + ox, y = rn() + oy; const a = lk === 'Q' ? 2 * cx - lx : cx, b = lk === 'Q' ? 2 * cy - ly : cy; out.push(['Q', a, b, x, y]); lx = a; ly = b; cx = x; cy = y; lk = 'Q'; }
+    else if (C === 'A') { const rx = rn(), ry = rn(), ph = rn(), fa = rf(), fs = rf(), x = rn() + ox, y = rn() + oy; arcToC(cx, cy, rx, ry, ph, fa, fs, x, y, out); cx = x; cy = y; lk = ''; }
+    else throw new Error('未対応のパス命令: ' + cmd);
+  }
+  return out;
+}
+
+const K = 0.5522847498;
+const ellipseSegs = (cx, cy, rx, ry) => [['M', cx + rx, cy],
+  ['C', cx + rx, cy + K * ry, cx + K * rx, cy + ry, cx, cy + ry],
+  ['C', cx - K * rx, cy + ry, cx - rx, cy + K * ry, cx - rx, cy],
+  ['C', cx - rx, cy - K * ry, cx - K * rx, cy - ry, cx, cy - ry],
+  ['C', cx + K * rx, cy - ry, cx + rx, cy - K * ry, cx + rx, cy], ['Z']];
+function rectSegs(x, y, w, h, rx, ry) {
+  if (rx <= 0 || ry <= 0) return [['M', x, y], ['L', x + w, y], ['L', x + w, y + h], ['L', x, y + h], ['Z']];
+  rx = Math.min(rx, w / 2); ry = Math.min(ry, h / 2);
+  const kx = rx * K, ky = ry * K;
+  return [['M', x + rx, y], ['L', x + w - rx, y], ['C', x + w - rx + kx, y, x + w, y + ry - ky, x + w, y + ry],
+    ['L', x + w, y + h - ry], ['C', x + w, y + h - ry + ky, x + w - rx + kx, y + h, x + w - rx, y + h],
+    ['L', x + rx, y + h], ['C', x + rx - kx, y + h, x, y + h - ry + ky, x, y + h - ry],
+    ['L', x, y + ry], ['C', x, y + ry - ky, x + rx - kx, y, x + rx, y], ['Z']];
+}
+
+function opsFromSegs(segs) {
+  let s = '', cx = 0, cy = 0, sx = 0, sy = 0, need = false;
+  for (const g of segs) {
+    const t = g[0];
+    if (t !== 'M' && t !== 'Z' && need) { s += `${n(sx)} ${n(sy)} m\n`; cx = sx; cy = sy; need = false; }
+    if (t === 'M') { s += `${n(g[1])} ${n(g[2])} m\n`; cx = sx = g[1]; cy = sy = g[2]; need = false; }
+    else if (t === 'L') { s += `${n(g[1])} ${n(g[2])} l\n`; cx = g[1]; cy = g[2]; }
+    else if (t === 'C') { s += `${n(g[1])} ${n(g[2])} ${n(g[3])} ${n(g[4])} ${n(g[5])} ${n(g[6])} c\n`; cx = g[5]; cy = g[6]; }
+    else if (t === 'Q') {
+      const a = cx + 2 / 3 * (g[1] - cx), b = cy + 2 / 3 * (g[2] - cy), c = g[3] + 2 / 3 * (g[1] - g[3]), e = g[4] + 2 / 3 * (g[2] - g[4]);
+      s += `${n(a)} ${n(b)} ${n(c)} ${n(e)} ${n(g[3])} ${n(g[4])} c\n`; cx = g[3]; cy = g[4];
+    } else if (t === 'Z') { s += 'h\n'; cx = sx; cy = sy; need = true; }
+  }
+  return s;
+}
+
+/* ---- TrueTypeフォント読み取り・サブセット化 ---- */
+function readFont(buf, wantPs) {
+  const dv = new DataView(buf);
+  let bases = [0];
+  if (dv.getUint32(0) === 0x74746366) {                         // 'ttcf'
+    bases = []; const nf = dv.getUint32(8);
+    for (let i = 0; i < nf; i++) bases.push(dv.getUint32(12 + 4 * i));
+  }
+  const readDir = base => {
+    const nt = dv.getUint16(base + 4), tb = {};
+    for (let i = 0; i < nt; i++) {
+      const o = base + 12 + 16 * i;
+      tb[String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3))] = { off: dv.getUint32(o + 8), len: dv.getUint32(o + 12) };
+    }
+    return tb;
+  };
+  const psName = t => {
+    const cnt = dv.getUint16(t.off + 2), so = t.off + dv.getUint16(t.off + 4);
+    for (let i = 0; i < cnt; i++) {
+      const r = t.off + 6 + 12 * i; if (dv.getUint16(r + 6) !== 6) continue;
+      const pl = dv.getUint16(r), len = dv.getUint16(r + 8), o = so + dv.getUint16(r + 10); let s = '';
+      if (pl === 3 || pl === 0) for (let k = 0; k + 1 < len; k += 2) s += String.fromCharCode(dv.getUint16(o + k));
+      else for (let k = 0; k < len; k++) s += String.fromCharCode(dv.getUint8(o + k));
+      return s;
+    }
+    return '';
+  };
+  let tb = null, ps = '';
+  for (const b of bases) {
+    const t = readDir(b), p = t.name ? psName(t.name) : '';
+    if (!tb) { tb = t; ps = p; }
+    if (wantPs && p === wantPs) { tb = t; ps = p; break; }
+  }
+  if (!tb.glyf || !tb.loca) throw new Error('TrueType形式（glyf）のフォントではありません。CFF形式のOTFは未対応です');
+  const h = tb.head.off, upm = dv.getUint16(h + 18), locFmt = dv.getInt16(h + 50);
+  const numGlyphs = dv.getUint16(tb.maxp.off + 4), nHM = dv.getUint16(tb.hhea.off + 34);
+
+  /* cmap */
+  const recs = [], co = tb.cmap.off;
+  for (let i = 0, c = dv.getUint16(co + 2); i < c; i++) {
+    const r = co + 4 + 8 * i, off = co + dv.getUint32(r + 4);
+    recs.push({ pl: dv.getUint16(r), en: dv.getUint16(r + 2), off, fmt: dv.getUint16(off) });
+  }
+  const pick = recs.find(r => r.fmt === 12 && ((r.pl === 3 && r.en === 10) || r.pl === 0)) ||
+    recs.find(r => r.fmt === 4 && ((r.pl === 3 && r.en === 1) || r.pl === 0));
+  if (!pick) throw new Error('Unicodeのcmapがありません');
+  const cache = new Map();
+  const lookup = cp => {
+    const o = pick.off;
+    if (pick.fmt === 12) {
+      for (let i = 0, g = dv.getUint32(o + 12); i < g; i++) {
+        const q = o + 16 + 12 * i, st = dv.getUint32(q), en = dv.getUint32(q + 4);
+        if (cp >= st && cp <= en) return dv.getUint32(q + 8) + cp - st;
+        if (cp < st) return 0;
+      }
+      return 0;
+    }
+    if (cp > 0xFFFF) return 0;
+    const sc = dv.getUint16(o + 6) / 2, endO = o + 14, stO = endO + 2 * sc + 2, dO = stO + 2 * sc, rO = dO + 2 * sc;
+    for (let i = 0; i < sc; i++) {
+      if (cp > dv.getUint16(endO + 2 * i)) continue;
+      if (cp < dv.getUint16(stO + 2 * i)) return 0;
+      const ro = dv.getUint16(rO + 2 * i), dl = dv.getInt16(dO + 2 * i);
+      if (ro === 0) return (cp + dl) & 0xFFFF;
+      const g = dv.getUint16(rO + 2 * i + ro + 2 * (cp - dv.getUint16(stO + 2 * i)));
+      return g === 0 ? 0 : (g + dl) & 0xFFFF;
+    }
+    return 0;
+  };
+  return {
+    buf, dv, tb, ps, upm, locFmt, numGlyphs, nHM,
+    bbox: [dv.getInt16(h + 36), dv.getInt16(h + 38), dv.getInt16(h + 40), dv.getInt16(h + 42)],
+    asc: dv.getInt16(tb.hhea.off + 4), desc: dv.getInt16(tb.hhea.off + 6),
+    gid(cp) { if (!cache.has(cp)) cache.set(cp, lookup(cp)); return cache.get(cp); },
+    adv(g) { return dv.getUint16(tb.hmtx.off + 4 * (g < nHM ? g : nHM - 1)); }
+  };
+}
+
+function csum(u) {
+  let s = 0; const len = u.length, full = len - len % 4, dv = new DataView(u.buffer, u.byteOffset, len);
+  for (let i = 0; i < full; i += 4) s = (s + dv.getUint32(i)) >>> 0;
+  if (len % 4) { let v = 0; for (let k = 0; k < 4; k++) v = v * 256 + (k < len % 4 ? u[full + k] : 0); s = (s + v) >>> 0; }
+  return s;
+}
+function makeSfnt(tabs) {
+  tabs.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  const nt = tabs.length; let off = 12 + 16 * nt, total = off;
+  for (const t of tabs) total += (t[1].length + 3) & ~3;
+  const out = new Uint8Array(total), dv = new DataView(out.buffer);
+  dv.setUint32(0, 0x00010000); dv.setUint16(4, nt);
+  let es = 0; while ((1 << (es + 1)) <= nt) es++;
+  const sr = 16 * (1 << es); dv.setUint16(6, sr); dv.setUint16(8, es); dv.setUint16(10, nt * 16 - sr);
+  let headOff = 0;
+  tabs.forEach((t, i) => {
+    const r = 12 + 16 * i;
+    for (let k = 0; k < 4; k++) out[r + k] = t[0].charCodeAt(k);
+    dv.setUint32(r + 4, csum(t[1])); dv.setUint32(r + 8, off); dv.setUint32(r + 12, t[1].length);
+    out.set(t[1], off); if (t[0] === 'head') headOff = off;
+    off += (t[1].length + 3) & ~3;
+  });
+  if (headOff) dv.setUint32(headOff + 8, (0xB1B0AFBA - csum(out)) >>> 0);
+  return out;
+}
+
+/* 使った字形だけ残したTrueTypeを作る（GIDは元のまま＝CIDToGIDMap Identity で使える） */
+function subsetFont(F, used) {
+  const { dv, tb, buf } = F;
+  const loc = g => F.locFmt ? dv.getUint32(tb.loca.off + 4 * g) : dv.getUint16(tb.loca.off + 2 * g) * 2;
+  const need = new Set(), stack = [0, ...used];
+  while (stack.length) {
+    const g = stack.pop(); if (need.has(g) || g >= F.numGlyphs) continue; need.add(g);
+    const s = loc(g), e = loc(g + 1); if (e - s < 10) continue;
+    const o = tb.glyf.off + s;
+    if (dv.getInt16(o) < 0) {                                  // 複合グリフの部品
+      let p = o + 10, fl;
+      do { fl = dv.getUint16(p); stack.push(dv.getUint16(p + 2)); p += 4 + ((fl & 1) ? 4 : 2); if (fl & 8) p += 2; else if (fl & 0x40) p += 4; else if (fl & 0x80) p += 8; } while (fl & 0x20);
+    }
+  }
+  const chunks = [], nl = new Uint8Array(4 * (F.numGlyphs + 1)), ldv = new DataView(nl.buffer);
+  let pos = 0;
+  for (let g = 0; g < F.numGlyphs; g++) {
+    ldv.setUint32(4 * g, pos);
+    if (!need.has(g)) continue;
+    const s = loc(g), len = loc(g + 1) - s;
+    if (len > 0) { chunks.push(new Uint8Array(buf, tb.glyf.off + s, len)); const pad = (4 - len % 4) % 4; if (pad) chunks.push(new Uint8Array(pad)); pos += len + pad; }
+  }
+  ldv.setUint32(4 * F.numGlyphs, pos);
+  const glyf = new Uint8Array(pos); let q = 0; for (const c of chunks) { glyf.set(c, q); q += c.length; }
+  const copy = t => new Uint8Array(buf, tb[t].off, tb[t].len).slice();
+  const head = copy('head'); new DataView(head.buffer).setInt16(50, 1);
+  const hm = copy('hmtx');
+  for (let g = 0; g < F.numGlyphs; g++) if (!need.has(g)) {
+    const o = g < F.nHM ? 4 * g : 4 * F.nHM + 2 * (g - F.nHM), l = g < F.nHM ? 4 : 2;
+    if (o + l <= hm.length) hm.fill(0, o, o + l);
+  }
+  const tabs = [['head', head], ['hhea', copy('hhea')], ['maxp', copy('maxp')], ['hmtx', hm], ['loca', nl], ['glyf', glyf]];
+  for (const t of ['cvt ', 'fpgm', 'prep']) if (tb[t]) tabs.push([t, copy(t)]);
+  return makeSfnt(tabs);
+}
+
+/* ---- PDF組み立て ---- */
+async function deflate(bytes) {
+  if (typeof CompressionStream === 'undefined') return null;
+  const c = new CompressionStream('deflate'), w = c.writable.getWriter();
+  w.write(bytes); w.close();
+  return new Uint8Array(await new Response(c.readable).arrayBuffer());
+}
+const hex4 = v => v.toString(16).padStart(4, '0');
+const u16hex = cp => cp > 0xFFFF ? hex4(0xD800 + ((cp - 0x10000) >> 10)) + hex4(0xDC00 + ((cp - 0x10000) & 0x3FF)) : hex4(cp);
+
+async function buildPdf(pages, gsMap, fp) {                      // fp: {F, used:Map(gid→cp)} または null
+  const useFont = !!(fp && fp.used.size);
+  const parts = [], offs = []; let pos = 0;
+  const put = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); pos += b.length; };
+  const obj = (id, body) => { offs[id] = pos; put(`${id} 0 obj\n${body}\nendobj\n`); };
+  const sobj = async (id, dict, raw) => {
+    const z = await deflate(raw), data = z || raw; offs[id] = pos;
+    put(`${id} 0 obj\n<< ${dict}${z ? ' /Filter /FlateDecode' : ''} /Length ${data.length} >>\nstream\n`);
+    put(data); put('\nendstream\nendobj\n');
+  };
+  put(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x35, 0x0a, 0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]));
+  const kids = pages.map((_, i) => `${4 + 2 * i} 0 R`).join(' ');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+  obj(2, `<< /Type /Pages /Count ${pages.length} /Kids [${kids}] >>`);
+  let gsd = '<< ';
+  for (const g of gsMap.values()) gsd += `/${g.name} << /Type /ExtGState /ca ${g.ca} /CA ${g.CA} >> `;
+  obj(3, gsd + '>>');
+  const fb = 4 + 2 * pages.length;                               // フォント系オブジェクトの先頭ID
+  const res = `<< /ExtGState 3 0 R${useFont ? ` /Font << /F1 ${fb} 0 R >>` : ''} >>`;
+  for (let i = 0; i < pages.length; i++) {
+    const p = pages[i], pid = 4 + 2 * i;
+    obj(pid, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(p.W)} ${n(p.H)}] /Resources ${res} /Contents ${pid + 1} 0 R >>`);
+    await sobj(pid + 1, '', enc.encode(p.content));
+  }
+  let total = 3 + 2 * pages.length;
+  if (useFont) {
+    const F = fp.F, sc = 1000 / F.upm, bn = 'AAAAAA+EmbeddedFont';
+    const gids = [...fp.used.keys()].sort((a, b) => a - b);
+    const sub = subsetFont(F, gids);
+    const W = gids.map(g => `${g} [${Math.round(F.adv(g) * sc)}]`).join(' ');
+    obj(fb, `<< /Type /Font /Subtype /Type0 /BaseFont /${bn} /Encoding /Identity-H /DescendantFonts [${fb + 1} 0 R] /ToUnicode ${fb + 4} 0 R >>`);
+    obj(fb + 1, `<< /Type /Font /Subtype /CIDFontType2 /BaseFont /${bn} /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor ${fb + 2} 0 R /DW 1000 /W [${W}] /CIDToGIDMap /Identity >>`);
+    obj(fb + 2, `<< /Type /FontDescriptor /FontName /${bn} /Flags 4 /FontBBox [${F.bbox.map(v => Math.round(v * sc)).join(' ')}] /ItalicAngle 0 /Ascent ${Math.round(F.asc * sc)} /Descent ${Math.round(F.desc * sc)} /CapHeight ${Math.round(F.asc * sc)} /StemV 80 /FontFile2 ${fb + 3} 0 R >>`);
+    await sobj(fb + 3, `/Length1 ${sub.length}`, sub);
+    let cm = '/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n';
+    const ents = gids.filter(g => g > 0).map(g => `<${hex4(g)}> <${u16hex(fp.used.get(g))}>`);
+    for (let i = 0; i < ents.length; i += 100) { const ch = ents.slice(i, i + 100); cm += `${ch.length} beginbfchar\n${ch.join('\n')}\nendbfchar\n`; }
+    cm += 'endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n';
+    await sobj(fb + 4, '', enc.encode(cm));
+    total += 5;
+  }
+  const xr = pos;
+  let x = `xref\n0 ${total + 1}\n0000000000 65535 f \n`;
+  for (let id = 1; id <= total; id++) x += `${String(offs[id]).padStart(10, '0')} 00000 n \n`;
+  put(x + `trailer\n<< /Size ${total + 1} /Root 1 0 R >>\nstartxref\n${xr}\n%%EOF\n`);
+  return parts;
+}
+
+/* ================= DOM依存：SVG → ページ内容 ================= */
+const SKIP = new Set(['defs', 'clippath', 'mask', 'marker', 'symbol', 'pattern', 'metadata', 'title', 'desc', 'style', 'script', 'lineargradient', 'radialgradient', 'filter']);
+const SHAPES = new Set(['path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon']);
+let FONT = null, FONT_FROM_USER = false, USED = new Map();
+
+function parseColor(s) {
+  if (!s || s === 'none' || s === 'transparent') return null;
+  const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(s);
+  if (!m) return undefined;                       // url(#grad) など未対応
+  let a = 1; if (m[4] !== undefined) a = m[4].endsWith('%') ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+  return { r: m[1] / 255, g: m[2] / 255, b: m[3] / 255, a };
+}
+
+function convertSvg(file, gs, opts, warnSet) {
+  const warn = m => warnSet.add(`${file.name}: ${m}`);
+  const parse = t => new DOMParser().parseFromString(t, 'image/svg+xml');
+  let doc = parse(file.text);
+  if (doc.querySelector('parsererror')) throw new Error('SVGを解析できません');
+  if (doc.documentElement.namespaceURI !== 'http://www.w3.org/2000/svg') {   // xmlns無しのSVGを補う
+    doc = parse(file.text.replace(/<svg\b/, '<svg xmlns="http://www.w3.org/2000/svg"'));
+    if (doc.querySelector('parsererror')) throw new Error('SVGを解析できません');
+  }
+  const src = doc.documentElement;
+  if (src.localName.toLowerCase() !== 'svg') throw new Error('svg要素がありません');
+
+  const host = document.createElement('div');
+  host.style.cssText = 'position:absolute;left:-100000px;top:0;pointer-events:none';
+  const svg = document.importNode(src, true);
+  host.appendChild(svg); document.body.appendChild(host);
+  try {
+    let vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+    let wPt = unitToPt(svg.getAttribute('width')), hPt = unitToPt(svg.getAttribute('height'));
+    if (vb.length !== 4 || vb.some(isNaN) || vb[2] <= 0 || vb[3] <= 0) {
+      if (wPt && hPt) vb = [0, 0, wPt / 0.75, hPt / 0.75];
+      else { const b = svg.getBBox(); vb = [b.x, b.y, b.width || 1, b.height || 1]; }
+    }
+    if (!wPt && !hPt) { wPt = vb[2] * 0.75; hPt = vb[3] * 0.75; }
+    else if (!wPt) wPt = hPt * vb[2] / vb[3];
+    else if (!hPt) hPt = wPt * vb[3] / vb[2];
+    svg.setAttribute('viewBox', vb.join(' '));
+    svg.setAttribute('width', vb[2]); svg.setAttribute('height', vb[3]);
+    svg.removeAttribute('preserveAspectRatio');
+    if (FONT && FONT.css) svg.querySelectorAll('text,tspan,textPath').forEach(e => e.style.setProperty('font-family', FONT.css));
+
+    let W = wPt, H = hPt, mg = 0;
+    if (opts.size === 'a4') {
+      mg = 10 * 72 / 25.4;
+      [W, H] = vb[2] > vb[3] ? [841.89, 595.276] : [595.276, 841.89];
+    }
+    const s = Math.min((W - 2 * mg) / vb[2], (H - 2 * mg) / vb[3]);
+    const ox = (W - vb[2] * s) / 2, oy = (H - vb[3] * s) / 2;
+
+    let nShape = 0, nText = 0;
+    const out = [`q\n${n(s)} 0 0 ${n(-s)} ${n(ox - vb[0] * s)} ${n(H - oy + vb[1] * s)} cm\n`];
+    const rootInv = svg.getScreenCTM().inverse();
+
+    const effOpacity = el => {
+      let o = 1;
+      for (let e = el; e && e !== host; e = e.parentElement) o *= num(getComputedStyle(e).opacity, 1);
+      return o;
+    };
+    const gsName = (fa, sa) => {
+      fa = Math.round(fa * 1000) / 1000; sa = Math.round(sa * 1000) / 1000;
+      const key = fa + '|' + sa;
+      if (!gs.has(key)) gs.set(key, { name: 'G' + gs.size, ca: fa, CA: sa });
+      return gs.get(key).name;
+    };
+
+    /* 描画状態（q … 色・線・不透明度）。呼び出し側が Q で閉じる */
+    const style = (el, cs, M, canFill) => {
+      let fill = canFill ? parseColor(cs.fill) : null, stroke = parseColor(cs.stroke);
+      if (fill === undefined) { warn('グラデーション/パターンの塗りは未対応（塗りなしにしました）'); fill = null; }
+      if (stroke === undefined) { warn('グラデーション/パターンの線は未対応（線なしにしました）'); stroke = null; }
+      const sw = num(cs.strokeWidth, 0);
+      if (sw <= 0) stroke = null;
+      if (!fill && !stroke) return null;
+      const op = effOpacity(el);
+      const fa = fill ? fill.a * num(cs.fillOpacity, 1) * op : 1;
+      const sa = stroke ? stroke.a * num(cs.strokeOpacity, 1) * op : 1;
+      let t = `q\n${n(M.a)} ${n(M.b)} ${n(M.c)} ${n(M.d)} ${n(M.e)} ${n(M.f)} cm\n`;
+      if (fa < 1 || sa < 1) t += `/${gsName(fa, sa)} gs\n`;
+      if (fill) t += `${n(fill.r)} ${n(fill.g)} ${n(fill.b)} rg\n`;
+      if (stroke) {
+        t += `${n(stroke.r)} ${n(stroke.g)} ${n(stroke.b)} RG\n${n(sw)} w\n`;
+        t += `${{ butt: 0, round: 1, square: 2 }[cs.strokeLinecap] || 0} J ${{ miter: 0, round: 1, bevel: 2 }[cs.strokeLinejoin] || 0} j\n`;
+        t += `${n(Math.max(1, num(cs.strokeMiterlimit, 4)))} M\n`;
+        if (cs.strokeDasharray && cs.strokeDasharray !== 'none') {
+          let da = cs.strokeDasharray.split(/[\s,]+/).map(parseFloat);
+          if (da.length && !da.some(isNaN) && da.some(v => v > 0)) {
+            if (da.length % 2) da = da.concat(da);
+            t += `[${da.map(n).join(' ')}] ${n(num(cs.strokeDashoffset, 0))} d\n`;
+          }
+        }
+      }
+      return { t, fill, stroke, eo: cs.fillRule === 'evenodd' };
+    };
+    const emit = (el, cs, M, ops, canFill) => {
+      const st = style(el, cs, M, canFill); if (!st) return;
+      const paint = st.fill && st.stroke ? (st.eo ? 'B*' : 'B') : st.fill ? (st.eo ? 'f*' : 'f') : 'S';
+      out.push(st.t + ops + paint + '\nQ\n'); nShape++;
+    };
+
+    const shapeSegs = (el, tag) => {
+      const A = (k, d = 0) => num(el.getAttribute(k), d);
+      if (tag === 'path') return parsePath(el.getAttribute('d') || '');
+      if (tag === 'rect') {
+        const w = A('width'), h = A('height'); if (w <= 0 || h <= 0) return [];
+        let rx = el.hasAttribute('rx') ? A('rx') : null, ry = el.hasAttribute('ry') ? A('ry') : null;
+        if (rx === null && ry === null) rx = ry = 0; else if (rx === null) rx = ry; else if (ry === null) ry = rx;
+        return rectSegs(A('x'), A('y'), w, h, rx, ry);
+      }
+      if (tag === 'circle') { const r = A('r'); return r > 0 ? ellipseSegs(A('cx'), A('cy'), r, r) : []; }
+      if (tag === 'ellipse') { const rx = A('rx'), ry = A('ry'); return rx > 0 && ry > 0 ? ellipseSegs(A('cx'), A('cy'), rx, ry) : []; }
+      if (tag === 'line') return [['M', A('x1'), A('y1')], ['L', A('x2'), A('y2')]];
+      const p = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number).filter(v => !isNaN(v));
+      const r = []; for (let i = 0; i + 1 < p.length; i += 2) r.push([i ? 'L' : 'M', p[i], p[i + 1]]);
+      if (tag === 'polygon' && r.length) r.push(['Z']);
+      return r;
+    };
+
+    /* テキスト：文字のまま（埋め込みフォント）。位置はブラウザのレイアウト結果に合わせる */
+    const drawText = (el, cs, M) => {
+      if (!FONT) { warn('テキストがありますがフォントが見つからず省略しました（.ttf/.ttc をドロップしてください）'); return; }
+      const t = el.textContent.replace(/\s+/g, ' ').trim();
+      const nc = el.getNumberOfChars();
+      if (!t || !nc) return;
+      const st = style(el, cs, M, true); if (!st) return;
+      const fs = num(cs.fontSize, 16), cps = [];
+      for (let i = 0; i < t.length;) { const cp = t.codePointAt(i); cps.push({ cp, u: i }); i += cp > 0xFFFF ? 2 : 1; }
+      const P = [];
+      if (nc === t.length) {
+        for (const c of cps) { const p = el.getStartPositionOfChar(c.u); P.push({ x: p.x, y: p.y, r: el.getRotationOfChar(c.u) }); }
+      } else {
+        warn('テキストの文字位置を取得できず、フォントの送り幅で配置しました');
+        const p0 = el.getStartPositionOfChar(0); let x = p0.x;
+        for (const c of cps) { P.push({ x, y: p0.y, r: 0 }); x += FONT.adv(FONT.gid(c.cp)) * fs / FONT.upm; }
+      }
+      const gids = cps.map(c => {
+        const g = FONT.gid(c.cp);
+        if (g === 0) warn(`フォントに無い文字: ${String.fromCodePoint(c.cp)}`);
+        if (!USED.has(g)) USED.set(g, c.cp);
+        return g;
+      });
+      nText++;
+      const tr = st.fill && st.stroke ? 2 : st.fill ? 0 : 1;
+      let i = 0;
+      while (i < cps.length) {
+        const r = P[i].r, rad = r * Math.PI / 180, co = Math.cos(rad), si = Math.sin(rad);
+        let arr = '', j = i;
+        for (;;) {
+          arr += `<${hex4(gids[j])}>`;
+          const nx = j + 1; j = nx;
+          if (nx >= cps.length) break;
+          const dx = P[nx].x - P[nx - 1].x, dy = P[nx].y - P[nx - 1].y;
+          const along = dx * co + dy * si, perp = -dx * si + dy * co;
+          if (P[nx].r !== r || Math.abs(perp) > 0.01 * fs) break;
+          const adj = (FONT.adv(gids[nx - 1]) * fs / FONT.upm - along) / fs * 1000;
+          if (Math.abs(adj) > 0.5) arr += ` ${n(adj)} `;
+        }
+        out.push(`${st.t}BT\n/F1 1 Tf\n${tr} Tr\n${n(co * fs)} ${n(si * fs)} ${n(si * fs)} ${n(-co * fs)} ${n(P[i].x)} ${n(P[i].y)} Tm\n[${arr}] TJ\nET\nQ\n`);
+        i = j;
+      }
+    };
+
+    const walk = node => {
+      if (node.nodeType !== 1) return;
+      const tag = node.localName.toLowerCase();
+      if (SKIP.has(tag)) return;
+      const cs = getComputedStyle(node);
+      if (cs.display === 'none') return;
+      if (cs.clipPath && cs.clipPath !== 'none') warn('clip-path は未対応（クリップなしで出力）');
+      if (cs.mask && cs.mask !== 'none') warn('mask は未対応');
+      if (cs.filter && cs.filter !== 'none') warn('filter は未対応');
+      if (tag === 'svg' || tag === 'g' || tag === 'a') { for (const c of node.children) walk(c); return; }
+      if (tag === 'use' || tag === 'image' || tag === 'foreignobject') { warn(`<${tag}> は未対応のため省略`); return; }
+      if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return;
+      const ctm = node.getScreenCTM && node.getScreenCTM();
+      if (!ctm) return;
+      const M0 = rootInv.multiply(ctm), M = { a: M0.a, b: M0.b, c: M0.c, d: M0.d, e: M0.e, f: M0.f };
+      if (SHAPES.has(tag)) {
+        let segs; try { segs = shapeSegs(node, tag); } catch (e) { warn(`${tag}: ${e.message}`); return; }
+        if (segs.length) emit(node, cs, M, opsFromSegs(segs), tag !== 'line');
+      } else if (tag === 'text') drawText(node, cs, M);
+    };
+    walk(svg);
+    out.push('Q\n');
+    if (!nShape && !nText) warn('描画できる要素が1つもありませんでした（空白ページになります）');
+    return { W, H, content: out.join(''), nShape, nText };
+  } finally { host.remove(); }
+}
+
+/* ================= フォントの自動選択（Local Font Access API） ================= */
+const DEFAULT_FAMILIES = ['yu gothic', '游ゴシック', 'meiryo', 'メイリオ', 'ms gothic', 'ｍｓ ゴシック', 'ms pgothic', 'biz udgothic', 'biz udpgothic',
+  'hiragino sans', 'hiragino kaku gothic pron', 'noto sans cjk jp', 'noto sans jp', 'ipaexgothic', 'ipagothic', 'takaogothic', 'vl gothic', 'ms mincho', 'yu mincho'];
+
+async function autoFont(svgs, say) {
+  if (!window.queryLocalFonts) { say('このブラウザはシステムフォントの自動検索に未対応です。日本語フォント（例: C:\\Windows\\Fonts\\YuGothR.ttc / meiryo.ttc / msgothic.ttc）をドロップしてください'); return false; }
+  let list;
+  try { list = await queryLocalFonts(); }
+  catch (e) { say('フォント一覧を取得できませんでした（許可が必要です）: ' + e.message); return false; }
+  const chars = new Set(), fams = [];
+  for (const f of svgs) {
+    const d = new DOMParser().parseFromString(f.text, 'image/svg+xml');
+    d.querySelectorAll('text').forEach(t => { for (const ch of t.textContent) if (!/\s/.test(ch)) chars.add(ch.codePointAt(0)); });
+    for (const m of f.text.matchAll(/font-family\s*[:=]\s*("[^"]*"|'[^']*'|[^;>]*)/g))
+      m[1].replace(/^["']|["']$/g, '').split(',').forEach(s => fams.push(s.trim().replace(/^['"]|['"]$/g, '').toLowerCase()));
+  }
+  const seen = new Set(); let best = null;
+  for (const pref of [...fams, ...DEFAULT_FAMILIES]) {
+    if (!pref || seen.has(pref)) continue; seen.add(pref);
+    const cands = list.filter(x => x.family.toLowerCase() === pref || x.fullName.toLowerCase() === pref)
+      .sort((a, b) => (/regular|normal|book/i.test(b.style) ? 1 : 0) - (/regular|normal|book/i.test(a.style) ? 1 : 0));
+    for (const fd of cands.slice(0, 2)) {
+      try {
+        const F = readFont(await (await fd.blob()).arrayBuffer(), fd.postscriptName);
+        let miss = 0; for (const cp of chars) if (F.gid(cp) === 0) miss++;
+        if (!best || miss < best.miss) { F.css = `"${fd.family}"`; best = { F, miss, name: fd.fullName }; }
+        if (miss === 0) break;
+      } catch (e) { /* CFF形式など → 次の候補 */ }
+    }
+    if (best && best.miss === 0) break;
+  }
+  if (!best) { say('埋め込み可能な日本語フォントを自動では見つけられませんでした。.ttf/.ttc をドロップしてください'); return false; }
+  FONT = best.F; FONT_FROM_USER = false;
+  say(`フォント: ${best.name}` + (best.miss ? `（${best.miss}種の文字は未収録）` : ''));
+  return true;
+}
+
+/* ================= UI ================= */
+const $ = s => document.querySelector(s);
+const files = [];
+const drop = $('#drop'), picker = $('#picker'), list = $('#list'), logEl = $('#log');
+const say = m => { logEl.textContent += m + '\n'; };
+
+async function setFont(f) {
+  try {
+    const buf = await f.arrayBuffer();
+    FONT = readFont(buf, null); FONT_FROM_USER = true; FONT.css = null;
+    try { const ff = new FontFace('PDFEMBED' + Date.now(), buf.slice(0)); await ff.load(); document.fonts.add(ff); FONT.css = `"${ff.family}"`; } catch (e) { /* ブラウザが読めない形式（ttc等）は配置のみ従来どおり */ }
+    $('#fontstat').textContent = 'フォント: ' + f.name;
+  }
+  catch (e) { say(`フォントを読み込めませんでした（${f.name}）: ${e.message}`); }
+}
+async function addFiles(fl) {
+  for (const f of fl) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (ext === 'svg' || f.type === 'image/svg+xml') files.push({ name: f.name, text: await f.text() });
+    else if (['ttf', 'ttc', 'otf'].includes(ext)) await setFont(f);
+    else say('未対応のファイル: ' + f.name);
+  }
+  render();
+}
+function btn(label, fn) { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; return b; }
+function mv(i, d) { const j = i + d; if (j < 0 || j >= files.length) return; [files[i], files[j]] = [files[j], files[i]]; render(); }
+function render() {
+  list.innerHTML = '';
+  files.forEach((f, i) => {
+    const li = document.createElement('li'), sp = document.createElement('span');
+    sp.textContent = `${i + 1}. ${f.name}`;
+    li.append(sp, btn('↑', () => mv(i, -1)), btn('↓', () => mv(i, 1)), btn('✕', () => { files.splice(i, 1); render(); }));
+    list.append(li);
+  });
+}
+
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); addFiles(Array.from(e.dataTransfer.files)); });
+drop.addEventListener('click', () => picker.click());
+picker.addEventListener('change', () => { addFiles(Array.from(picker.files)); picker.value = ''; });
+$('#sort').onclick = () => { files.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true })); render(); };
+$('#clear').onclick = () => { files.length = 0; render(); };
+
+$('#go').onclick = async () => {
+  logEl.textContent = '';
+  if (!files.length) { say('SVGをドロップしてください'); return; }
+  if (!FONT_FROM_USER && files.some(f => /<text[\s>]/.test(f.text))) {
+    if (await autoFont(files, say)) $('#fontstat').textContent = 'フォント: 自動選択';
+  }
+  const warnSet = new Set(), gs = new Map(), pages = [], opts = { size: $('#size').value };
+  USED = new Map();
+  for (const f of files) {
+    try { const pg = convertSvg(f, gs, opts, warnSet); pages.push(pg); say(`OK: ${f.name}（図形${pg.nShape}・文字${pg.nText}）`); }
+    catch (e) { say('失敗: ' + f.name + ' — ' + e.message); }
+  }
+  if (!pages.length) return;
+  const parts = await buildPdf(pages, gs, FONT ? { F: FONT, used: USED } : null);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(parts, { type: 'application/pdf' }));
+  a.download = 'merged.pdf'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  say(`\n${pages.length}ページのPDFを作成しました`);
+  if (warnSet.size) say('\n【注意】\n' + [...warnSet].join('\n'));
+};
+</script>
+</body>
+</html>

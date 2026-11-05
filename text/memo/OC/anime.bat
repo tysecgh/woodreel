@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 :: --- ê›íËçÄñ⁄ ---
 set OPENSCAD_PATH="C:\Program Files (x86)\OpenSCAD\openscad"
-set SCAD_FILE=OC3.scad
+set SCAD_FILE=OSC0.scad
 set OUTPUT_DIR=frames
 set TOTAL_STEPS=71
 set CAMERA=-20,-10,55,45,0,300,400
