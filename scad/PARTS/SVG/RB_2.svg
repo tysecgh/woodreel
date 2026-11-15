@@ -376,21 +376,21 @@ M 33.4304,-45.3408 L 33.4304,-46.069 L 33.4535,-46.4801 L 33.5229,-46.8164 L 33.
   <!-- OpenSCADから自動マージされたテキスト -->
 <text x='94' y='-225' font-size='4' >
 <tspan x='94' dy='0' font-size='5' >PART_RB_t2</tspan>
-<tspan x='94' dy='4.8' >外接長方形:60X75</tspan>
+<tspan x='94' dy='4.8' >外接長方形:60X75X3</tspan>
 <tspan x='94' dy='4.8' >基準点: x:31+29 y:35+40</tspan>
 <tspan x='94' dy='4.8' >切り欠き: x:10+45+5 y:54+21</tspan>
 <tspan x='94' dy='4.8' >中央穴 r:18 x:31 y:35</tspan>
 </text>
 <text x='89' y='-125' font-size='4' >
 <tspan x='89' dy='0' font-size='5' >PART_RB_t3</tspan>
-<tspan x='89' dy='4.8' >外接長方形:60X75</tspan>
+<tspan x='89' dy='4.8' >外接長方形:60X75X3</tspan>
 <tspan x='89' dy='4.8' >基準点: x:31+29 y:35+40</tspan>
 <tspan x='89' dy='4.8' >切り欠き: x:10+45+5 y:54+21</tspan>
 <tspan x='89' dy='4.8' >中央穴 r:22 x:31 y:35</tspan>
 </text>
 <text x='111' y='-55' font-size='4' >
 <tspan x='111' dy='0' font-size='5' >PART_RS</tspan>
-<tspan x='111' dy='4.8' >外接長方形:12X58</tspan>
+<tspan x='111' dy='4.8' >外接長方形:12X58X3</tspan>
 <tspan x='111' dy='4.8' >基準点: x:6+6 y:29+29</tspan>
 <tspan x='111' dy='4.8' >ピン穴 r:1.5 x:6 y:29</tspan>
 </text>

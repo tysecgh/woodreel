@@ -440,7 +440,7 @@ module PART_GM(){
 	name_view(GM_X_name,namep);
 }
 
-	// データ表示部
+// データ表示部
 GM_X_ALL = [
 	GM_X_name,
 	str("外径:",GM_N_or*2," 板厚:",boardAw),
@@ -572,7 +572,7 @@ module PART_OF(){
 }
 OF_X_ALL = [
 	OF_X_name,
-	str("外接長方形:",OF_N_xl+OF_N_xr,"X",OF_N_yl+OF_N_yr),
+	str("外接長方形:",OF_N_xl+OF_N_xr,"X",OF_N_yl+OF_N_yr,"X",boardAw),
 	str("カム軸スペース ",
         " x:", join([OF_N_xl,OCc_K_w,OF_N_xr-OCc_K_w]),
         " y:", join([OF_N_yl-OCgs_V_r,OCgs_V_r*2,OF_N_yr-OCgs_V_r])
@@ -689,11 +689,11 @@ module PART_RB_b(){
 RBb_X_ALL = [
 	RBb_X_name,
 	str("内半径",MS_K_r),
-	str("外半径",RB_N_or),
+	str("外半径",RB_N_or," 板厚",boardBw),
 	str("基準半径",RB_K_r,",歯数",RB_K_num)
 ];
 
-RB_X_outrct = str("外接長方形:",RB_N_xw,"X",RB_N_yw);
+function RB_X_outrct(h) = str("外接長方形:",RB_N_xw,"X",RB_N_yw,"X",h);
 RB_X_orgp = str("基準点: x:",RB_P_xl,"+",RB_P_xr," y:",RB_P_yl,"+",RB_P_yr);
 RB_X_acut = str("切り欠き: x:",
 	RB_P_xl-R_V_axm,"+",
@@ -717,7 +717,7 @@ module PART_RB_t0(){
 }
 RBt0_X_ALL = [
 	RBt0_X_name,
-	RB_X_outrct,
+	RB_X_outrct(boardAw),
 	RB_X_orgp,
 	RB_X_acut
 ];
@@ -735,21 +735,22 @@ RBt1_P_sry = 15;
 
 RBt1_X_name = "PART_RB_t1";
 module PART_RB_t1(){
+    h = boardBw;
 	difference(){
-		PART_RB_abstract(boardBw,MS_K_r);
+		PART_RB_abstract(h,MS_K_r);
 
 		// RA軸スリット
 		cut(
 			[-RB_P_xl-_margin_,R_V_as-RA_N_sr],
 			[ RB_P_xr+_margin_,R_V_as+RA_N_sr],
-			boardBw
+			h
 		);
 
 		// ストッパースぺース用切り欠き
 		cutOff(
 			[-R_V_axm,-RB_P_yl],
 			[-R_V_axm,RB_P_yr],
-			boardBw
+			h
 		);
 
 		// 新左下座標
@@ -759,7 +760,7 @@ module PART_RB_t1(){
 		cutOff(
 			p - [-RBt1_P_srx,0],
 			p - [0,-RBt1_P_sry],
-			boardBw
+			h
 		);
 
 
@@ -767,7 +768,7 @@ module PART_RB_t1(){
 		cut(
 			[-R_V_axm-_margin_,-RB_P_yl-_margin_],
 			[RBt1_N_scutx,-RBt1_N_scuty],
-			boardBw
+			h
 		);
 
 
@@ -779,7 +780,7 @@ module PART_RB_t1(){
 
 RBt1_X_ALL = [
 	RBt1_X_name,
-	str("外接長方形:",R_V_axm+RB_P_xr,"X",RB_P_yl+RB_P_yr),
+	str("外接長方形:",R_V_axm+RB_P_xr,"X",RB_P_yl+RB_P_yr,"X",boardBw),
 	str("RA軸用スリット: y",join([
 		RB_P_yl+R_V_as-RA_N_sr,
 		RA_N_sr*2,
@@ -811,7 +812,7 @@ module PART_RB_t2(){
 }
 RBt2_X_ALL = [
 	RBt2_X_name,
-	RB_X_outrct,
+	RB_X_outrct(boardBw),
 	RB_X_orgp,
 	RB_X_acut,
 	str("中央穴 r:",MS_K_r," x:",RB_P_xl," y:",RB_P_yl)
@@ -826,7 +827,7 @@ module PART_RB_t3(){
 }
 RBt3_X_ALL = [
 	RBt3_X_name,
-	RB_X_outrct,
+	RB_X_outrct(boardBw),
 	RB_X_orgp,
 	RB_X_acut,
 	str("中央穴 r:",MS_K_r+4," x:",RB_P_xl," y:",RB_P_yl)
@@ -852,7 +853,7 @@ module PART_RS(){
 }
 RS_X_ALL = [
 	RS_X_name,
-	str("外接長方形:",RS_P_xl+RS_P_xr,"X",RS_P_yl+RS_P_yr),
+	str("外接長方形:",RS_P_xl+RS_P_xr,"X",RS_P_yl+RS_P_yr,"X",boardBw),
 	str("基準点: x:",RS_P_xl,"+",RS_P_xr," y:",RS_P_yl,"+",RS_P_yr),
 	str("ピン穴 r:",pin_rad," x:",RS_P_xl," y:",RS_P_yl)
 ];
@@ -918,7 +919,7 @@ module PART_RA_abstract(){
 	}
 }
 
-RA_X_outrct = str("外接長方形:",RA_N_xw,"X",RA_N_yw);
+RA_X_outrct = str("外接長方形:",RA_N_xw,"X",RA_N_yw,"X",boardBw);
 RA_X_shp = str(
 	"軸穴: x:",RA_P_xl,"+",RA_P_xr2,
 	" y:",RA_P_yl,"+",RA_P_yr
@@ -1009,7 +1010,7 @@ module PART_RA_bo(){
 }
 RAbo_X_ALL = [
 	RAbo_X_name,
-	str("外接長方形:",RAbo_N_w,"X",RAb_N_h)
+	str("外接長方形:",RAbo_N_w,"X",RAb_N_h,"X",boardBw)
 ];
 
 RAbi_X_name = "PART_RA_bi";
@@ -1025,7 +1026,7 @@ module PART_RA_bi(){
 }
 RAbi_X_ALL = [
 	RAbi_X_name,
-	str("外接長方形:",RAbi_N_w,"X",RAb_N_h)
+	str("外接長方形:",RAbi_N_w,"X",RAb_N_h,"X",boardBw)
 ];
 
 RAr_N_d = RAbo_N_w;
@@ -1078,7 +1079,7 @@ module PART_RA_subabstract(){
 
 }
 
-RA_X_outrctsub = str("外接長方形:",RAsub_N_xw,"X",RAsub_N_yw);
+RA_X_outrctsub = str("外接長方形:",RAsub_N_xw,"X",RAsub_N_yw,"X",boardBw);
 RA_X_shpsub = str("軸穴: x:",RA_P_xl,"+",RA_P_xr2," y:",RA_P_yl,"+",RAsub_P_yr);
 
 RAsubi_X_name = "PART_RA_subi";
@@ -1431,7 +1432,7 @@ module PART_B_holes(h){
 	translate(B_P_pinp) hole(3,h);
 }
 
-function B_X_outrct(pw) = str("外接長方形:",pw[0],"X",pw[1]);
+function B_X_outrct(pw,h) = str("外接長方形:",pw[0],"X",pw[1],"X",h);
 
 function holeX(pll,p,pw) = str(
     " x:", -pll[0]+p[0] ,"+", pw[0]-(-pll[0]+p[0]),
@@ -1481,7 +1482,7 @@ module PART_B_c(){
 }
 Bc_X_ALL = [
 	Bc_X_name,
-	B_X_outrct(Bl_P_pw),
+	B_X_outrct(Bl_P_pw,boardAw),
 	B_X_hhp(Bl_P_pll,Bl_P_pw),
 	B_X_ochp(Bl_P_pll,Bl_P_pw),
 	B_X_msphp(Bl_P_pll,Bl_P_pw),
@@ -1525,7 +1526,7 @@ Bf_X_ALL = [
 	Bf_X_name,
 	str(
 		"外接長方形: x",B_P_xl3+B_P_xr+Bf_N_ox,
-		" y",Bf_N_h
+		" y",Bf_N_h," h",boardAw
 	),
 	str(
 		"切り欠き: x",
@@ -1555,7 +1556,7 @@ module PART_B_l1(){
 }
 Bl1_X_ALL = [
 	Bl1_X_name,
-	B_X_outrct(Bl_P_pw),
+	B_X_outrct(Bl_P_pw,boardAw),
 	B_X_hhp(Bl_P_pll,Bl_P_pw),
 	B_X_msphp(Bl_P_pll,Bl_P_pw),
 	str("オシレーションカム受け子スペース:",
@@ -1595,7 +1596,7 @@ module PART_B_l2(){
 
 Bl2_X_ALL = [
 	Bl2_X_name,
-	B_X_outrct(Bl2_P_pw),
+	B_X_outrct(Bl2_P_pw,boardAw),
 	str(
 		"左上欠け :",xytxt(
 			join([B_P_xl-B_P_xl3,B_P_xl3+B_P_xr]),
@@ -1649,7 +1650,7 @@ module PART_B_l3(){
 }
 Bl3_X_ALL =[
 	Bl3_X_name,
-	B_X_outrct(Bl_P_pw),
+	B_X_outrct(Bl_P_pw,boardAw),
 	str(
 		"GS歯部分可動スペース r:",GS_K_r+2,
 		holeX(Bl_P_pll,[0,0],Bl_P_pw)
@@ -1678,7 +1679,7 @@ module PART_B_l4(){
 }
 Bl4_X_ALL = [
 	Bl4_X_name,
-	B_X_outrct(Bl_P_pw),
+	B_X_outrct(Bl_P_pw,boardAw),
 	str(
 		"GS歯車スペース r:",GS_N_or+1,
 		holeX(Bl_P_pll,[0,0],Bl_P_pw)
@@ -1701,7 +1702,7 @@ module PART_B_r1(){
 }
 Br1_X_ALL = [
 	Br1_X_name,
-	B_X_outrct(Bl_P_pw),
+	B_X_outrct(Bl_P_pw,boardAw),
 	B_X_hhp(Bl_P_pll,Bl_P_pw),
 	B_X_ochp(Bl_P_pll,Bl_P_pw),
 	B_X_msphp(Bl_P_pll,Bl_P_pw)
@@ -1732,7 +1733,7 @@ module PART_B_r2(){
 }
 Br2_X_ALL = [
 	Br2_X_name,
-	B_X_outrct(Br_P_pw),
+	B_X_outrct(Br_P_pw,boardAw),
 	B_X_hhp(Br_P_pll,Br_P_pw),
 	B_X_ochp(Br_P_pll,Br_P_pw),
 	B_X_msphp(Br_P_pll,Br_P_pw),
@@ -1770,7 +1771,7 @@ module PART_B_r3(){
 }
 Br3_X_ALL = [
 	Br3_X_name,
-	B_X_outrct(Br_P_pw),
+	B_X_outrct(Br_P_pw,boardAw),
 	B_X_hhp(Br_P_pll,Br_P_pw),
 	B_X_ochp(Br_P_pll,Br_P_pw),
 	B_X_msphp(Br_P_pll,Br_P_pw)

@@ -29,7 +29,7 @@ union(){
     translate([x,y,0]){
         PART_RA_r();
     }
-    svgtxt( RAr_X_ALL, [x-25,y+10] );
+    svgtxt( RAr_X_ALL, [x-15,y+10] );
 }
 
 
@@ -48,7 +48,7 @@ union(){
     translate([x,y,0]){
         PART_HK_k();
     }
-    svgtxt( HKk_X_ALL, [x-70,y+25] );
+    svgtxt( HKk_X_ALL, [x-60,y+25] );
 }
 union(){
     x = 110+basex; y =155+basey;     
@@ -56,7 +56,7 @@ union(){
     translate([x,y,0]){
         PART_HK_n();
     }
-    svgtxt( HKn_X_ALL, [x-60,y] );
+    svgtxt( HKn_X_ALL, [x-50,y] );
 }
 
 union(){
@@ -65,7 +65,7 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_HK_s();
     }
-    svgtxt( HKs_X_ALL, [x-10,y-5] );
+    svgtxt( HKs_X_ALL, [x,y-5] );
 }
 
 union(){
@@ -74,7 +74,7 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_MS_s0();
     }
-    svgtxt( MSs0_X_ALL, [x+100,y+10] );
+    svgtxt( MSs0_X_ALL, [x+110,y+10] );
 }
 union(){
     x = 30+basex; y =105+basey;     
@@ -82,7 +82,7 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_MS_s2();
     }
-    svgtxt( MSs2_X_ALL, [x+100,y+10] );
+    svgtxt( MSs2_X_ALL, [x+110,y+10] );
 }
 union(){
     x = 30+basex; y =90+basey;     
@@ -90,7 +90,7 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_MS_s4();
     }
-    svgtxt( MSs4_X_ALL, [x+100,y+10] );
+    svgtxt( MSs4_X_ALL, [x+110,y+10] );
 }
 union(){
     x = 30+basex; y =75+basey;     
@@ -98,7 +98,7 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_MS_s8();
     }
-    svgtxt( MSs8_X_ALL, [x+100,y+10] );
+    svgtxt( MSs8_X_ALL, [x+110,y+10] );
 }
 union(){
     x = 30+basex; y =60+basey;     
@@ -106,7 +106,7 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_MS_s10();
     }
-    svgtxt( MSs10_X_ALL, [x+100,y+10] );
+    svgtxt( MSs10_X_ALL, [x+110,y+10] );
 }
 
 union(){
@@ -115,7 +115,7 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_OC_s();
     }
-    svgtxt( OCs_X_ALL, [x+100,y+17] );
+    svgtxt( OCs_X_ALL, [x+110,y+17] );
 }
 union(){
     x = 30+basex; y =25+basey;     
@@ -123,5 +123,5 @@ union(){
     translate([x,y,0]){
         rotate([0,90,0]) PART_HS();
     }
-    svgtxt( HS_X_ALL, [x+100,y+10] );
+    svgtxt( HS_X_ALL, [x+110,y+10] );
 }

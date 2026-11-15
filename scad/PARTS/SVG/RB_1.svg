@@ -608,18 +608,18 @@ M 84,-35.489 L 83.5777,-35.489 L 83.5777,-36.4003 L 80.5376,-36.4003 L 80.5376,-
 <text x='131' y='-245' font-size='4' >
 <tspan x='131' dy='0' font-size='5' >PART_RB_b</tspan>
 <tspan x='131' dy='4.8' >内半径18</tspan>
-<tspan x='131' dy='4.8' >外半径24</tspan>
+<tspan x='131' dy='4.8' >外半径24 板厚3</tspan>
 <tspan x='131' dy='4.8' >基準半径21,歯数12</tspan>
 </text>
 <text x='94' y='-165' font-size='4' >
 <tspan x='94' dy='0' font-size='5' >PART_RB_t0</tspan>
-<tspan x='94' dy='4.8' >外接長方形:60X75</tspan>
+<tspan x='94' dy='4.8' >外接長方形:60X75X6</tspan>
 <tspan x='94' dy='4.8' >基準点: x:31+29 y:35+40</tspan>
 <tspan x='94' dy='4.8' >切り欠き: x:10+45+5 y:54+21</tspan>
 </text>
 <text x='89' y='-75' font-size='4' >
 <tspan x='89' dy='0' font-size='5' >PART_RB_t1</tspan>
-<tspan x='89' dy='4.8' >外接長方形:50X75</tspan>
+<tspan x='89' dy='4.8' >外接長方形:50X75X3</tspan>
 <tspan x='89' dy='4.8' >RA軸用スリット: y60+3+12</tspan>
 <tspan x='89' dy='4.8' >メインシャフト穴: r:18 x:21+29 y:35+25</tspan>
 <tspan x='89' dy='4.8' >切り欠き右上: x:45+5 y:54+6</tspan>

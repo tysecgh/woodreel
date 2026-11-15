@@ -23,7 +23,7 @@ scale([20,15,0]);
 basex = 0; basey = 0;
 
 union(){
-    x = 100+basex; y =150+basey;     
+    x = 100+basex; y =200+basey;     
     switch_proj()
     translate([x,y,0]){
         PART_B_r2();
@@ -32,5 +32,15 @@ union(){
     svgtxt( Br2_X_ALL , [x-50,y-50] );
 }
 
+
+union(){
+    x = 110+basex; y =basey+10;     
+    switch_proj()
+    translate([x,y,0]){
+        PART_B_f();
+    }
+
+    svgtxt( Bf_X_ALL , [x-40,y+90] );
+}
 
 

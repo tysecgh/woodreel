@@ -200,7 +200,7 @@ M 50,-74 L 50,-100 L 148,-100 L 148,-74 z
   <!-- OpenSCADから自動マージされたテキスト -->
 <text x='51' y='-95' font-size='4' >
 <tspan x='51' dy='0' font-size='5' >PART_B_r3</tspan>
-<tspan x='51' dy='4.8' >外接長方形:96X97</tspan>
+<tspan x='51' dy='4.8' >外接長方形:96X97X6</tspan>
 <tspan x='51' dy='4.8' >ハンドル軸穴 r:3 x:50+46 y:47+50</tspan>
 <tspan x='51' dy='4.8' >オシレーションクランク軸穴 r:3 x:15+81 y:35+62</tspan>
 <tspan x='51' dy='4.8' >メインシャフト固定ピン穴 r:3 x:78+18 y:62+35</tspan>
