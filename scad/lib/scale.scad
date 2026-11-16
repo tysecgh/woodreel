@@ -1,5 +1,5 @@
 module scale(p){
-    linear_extrude(0.2){
+    linear_extrude(1){
         translate(p)
         square([100,0.1]);
         

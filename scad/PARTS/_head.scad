@@ -10,17 +10,6 @@ module switch_proj() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 // A4外枠 & 余白マーカー
 difference(){ 
     w = 210; h = 297; 
@@ -28,18 +17,8 @@ difference(){
     square([w,h]); translate([d,d]) square([w-2*d,h-2*d]); 
 }
 // これが実寸に会うと縮小されてない
-scale([20,15,0]);
+switch_proj() scale([20,10,0]);
 
 ///////////////////////////////
 ///////////////////////////////
 
-basex = 0; basey = 0;
-
-union(){
-    x = 0+basex; y =0+basey;     
-    switch_proj()
-    translate([x,y,0]){}
-
-
-    svgtxt( ["TITLE","comment1","comment2"], [x+100,y+100] );
-}
