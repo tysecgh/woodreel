@@ -702,6 +702,11 @@ RB_X_acut = str("切り欠き: x:",
 	" y:",RB_P_yl+RB_N_acuty,"+",RB_P_yr-RB_N_acuty
 );
 
+RB_X_stp = str(
+    "ストッパ軸穴 x",RB_P_xl-RB_N_sx,"+",RB_P_xr+RB_N_sx,
+    " y",RB_P_yl-RB_N_sy,"+",RB_P_yr+RB_N_sy
+);
+
 
 RBt0_X_name = "PART_RB_t0";
 module PART_RB_t0(){
@@ -719,7 +724,8 @@ RBt0_X_ALL = [
 	RBt0_X_name,
 	RB_X_outrct(boardAw),
 	RB_X_orgp,
-	RB_X_acut
+	RB_X_acut,
+    RB_X_stp
 ];
 
 
@@ -815,7 +821,8 @@ RBt2_X_ALL = [
 	RB_X_outrct(boardBw),
 	RB_X_orgp,
 	RB_X_acut,
-	str("中央穴 r:",MS_K_r," x:",RB_P_xl," y:",RB_P_yl)
+	str("中央穴 r:",MS_K_r," x:",RB_P_xl," y:",RB_P_yl),
+    RB_X_stp
 ];
 
 RBt3_X_name = "PART_RB_t3";
@@ -830,7 +837,8 @@ RBt3_X_ALL = [
 	RB_X_outrct(boardBw),
 	RB_X_orgp,
 	RB_X_acut,
-	str("中央穴 r:",MS_K_r+4," x:",RB_P_xl," y:",RB_P_yl)
+	str("中央穴 r:",MS_K_r+4," x:",RB_P_xl," y:",RB_P_yl),
+    RB_X_stp
 ];
 
 // ストッパー
